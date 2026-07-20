@@ -48,7 +48,7 @@ SETTINGS_FILE    = BASE_DIR / "site_settings.json"
 CUSTOM_LOGO_FILE = BASE_DIR / "site_logo.png"
 
 def load_site_settings() -> dict:
-    defaults = {"site_name": "Amazonia", "site_market": "MARKET"}
+    defaults = {"site_name": "Amazonia", "site_market": "MARKET", "site_logo_b64": ""}
     if SETTINGS_FILE.exists():
         try:
             data = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
@@ -58,9 +58,16 @@ def load_site_settings() -> dict:
             pass
     return defaults
 
-def save_site_settings(name: str, market: str):
-    data = {"site_name": name.strip() or "Amazonia",
-            "site_market": market.strip() or "MARKET"}
+def save_site_settings(name: str, market: str, logo_b64: str | None = None, remove_logo: bool = False):
+    # Conserva el logo guardado dentro del JSON para que funcione también en
+    # GitHub / Streamlit Cloud, donde los archivos locales de tu PC no existen.
+    data = load_site_settings()
+    data["site_name"] = name.strip() or "Amazonia"
+    data["site_market"] = market.strip() or "MARKET"
+    if remove_logo:
+        data.pop("site_logo_b64", None)
+    elif logo_b64 is not None:
+        data["site_logo_b64"] = logo_b64
     SETTINGS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 # Paleta de marca
@@ -606,6 +613,8 @@ class EditSiteWindow(tk.Toplevel):
         el fondo oscuro con esquinas redondeadas y sombra.
       * Si la imagen es rectangular igual funciona: se centra
         dentro del cuadrito sin deformarse.
+      * También se guarda incrustada dentro de site_settings.json
+        para que Streamlit Cloud la pueda mostrar desde GitHub.
     """
     def __init__(self, master):
         super().__init__(master)
@@ -668,7 +677,8 @@ class EditSiteWindow(tk.Toplevel):
                  text=("Recomendado: imagen CUADRADA de 512 x 512 px "
                        "(mínimo 256 x 256), preferiblemente PNG con fondo transparente. "
                        "Se mostrará dentro de un cuadrito de esquinas redondeadas, "
-                       "con fondo oscuro y sombra alrededor."),
+                       "con fondo oscuro y sombra. También queda guardada en site_settings.json "
+                       "para que funcione al subirlo a GitHub / Streamlit Cloud."),
                  font=("Segoe UI", 9), fg=COLOR_MUTED,
                  bg=COLOR_CARD, wraplength=460, justify="left"
                  ).pack(anchor="w", padx=16)
@@ -716,14 +726,18 @@ class EditSiteWindow(tk.Toplevel):
 
     def _refresh_preview(self, initial=False):
         src = self._new_logo_path
-        if src is None and CUSTOM_LOGO_FILE.exists():
-            src = CUSTOM_LOGO_FILE
-        if src is None:
-            self.preview_lbl.configure(image="", text="(sin imagen)")
-            self._preview_ref = None
-            return
         try:
-            img = Image.open(src).convert("RGBA")
+            if src is not None:
+                img = Image.open(src).convert("RGBA")
+            elif CUSTOM_LOGO_FILE.exists():
+                img = Image.open(CUSTOM_LOGO_FILE).convert("RGBA")
+            else:
+                logo_b64 = load_site_settings().get("site_logo_b64", "").strip()
+                if not logo_b64:
+                    self.preview_lbl.configure(image="", text="(sin imagen)")
+                    self._preview_ref = None
+                    return
+                img = Image.open(io.BytesIO(base64.b64decode(logo_b64))).convert("RGBA")
             img.thumbnail((110, 110), Image.LANCZOS)
             self._preview_ref = ImageTk.PhotoImage(img)
             self.preview_lbl.configure(image=self._preview_ref, text="")
@@ -764,22 +778,35 @@ class EditSiteWindow(tk.Toplevel):
             messagebox.showwarning("Falta el nombre",
                                    "Escribe un nombre para la tienda.")
             return
-        # Guardar nombre
-        try:
-            save_site_settings(name, market)
-        except Exception as e:
-            messagebox.showerror("Error al guardar", str(e))
-            return
-        # Guardar logo si se eligió uno nuevo
-        if self._new_logo_path and self._new_logo_path != "__REMOVE__":
+
+        remove_logo = self._new_logo_path == "__REMOVE__"
+        logo_b64 = None
+
+        # Guardar logo si se eligió uno nuevo. Se guarda en dos sitios:
+        # 1) site_logo.png para uso local.
+        # 2) site_settings.json como base64 para que Streamlit Cloud lo lea
+        #    desde GitHub aunque no se suba la imagen aparte.
+        if self._new_logo_path and not remove_logo:
             try:
                 img = Image.open(self._new_logo_path).convert("RGBA")
-                img.save(CUSTOM_LOGO_FILE, format="PNG")
+                out = io.BytesIO()
+                img.save(out, format="PNG")
+                png_bytes = out.getvalue()
+                CUSTOM_LOGO_FILE.write_bytes(png_bytes)
+                logo_b64 = base64.b64encode(png_bytes).decode("ascii")
             except Exception as e:
                 messagebox.showerror("Error con la imagen", str(e))
                 return
+
+        # Guardar nombre y logo incrustado
+        try:
+            save_site_settings(name, market, logo_b64=logo_b64, remove_logo=remove_logo)
+        except Exception as e:
+            messagebox.showerror("Error al guardar", str(e))
+            return
+
         messagebox.showinfo("Listo",
-                            "Página web actualizada. Recarga la tienda en el navegador para ver los cambios.")
+                            "Página web actualizada. Recarga la tienda en el navegador para ver los cambios. Si usas GitHub/Streamlit Cloud, sube también site_settings.json actualizado.")
         self.destroy()
 
 

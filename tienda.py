@@ -26,8 +26,15 @@ SETTINGS_FILE    = BASE_DIR / "site_settings.json"
 CUSTOM_LOGO_FILE = BASE_DIR / "site_logo.png"
 
 def load_site_settings() -> dict:
-    """Lee el nombre y el logo personalizados. Si no existen, usa los valores por defecto."""
-    defaults = {"site_name": "Amazonia", "site_market": "MARKET"}
+    """
+    Lee el nombre y el logo personalizados.
+
+    IMPORTANTE PARA STREAMLIT CLOUD / GITHUB:
+    Además de site_logo.png, también se soporta guardar el logo dentro de
+    site_settings.json como base64 (site_logo_b64). Así, aunque no subas
+    site_logo.png a GitHub, la tienda publicada puede mostrar el logo.
+    """
+    defaults = {"site_name": "Amazonia", "site_market": "MARKET", "site_logo_b64": ""}
     if SETTINGS_FILE.exists():
         try:
             data = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
@@ -230,11 +237,21 @@ def get_custom_badge_b64(size: int = 160, radius: int = 32,
     porque el logo lo cambia otra app (Tkinter) mientras Streamlit sigue abierto.
     """
     from PIL import ImageDraw
-    if not CUSTOM_LOGO_FILE.exists():
-        return get_logo_badge_b64(size=size, bg=bg, radius=radius)
 
+    # Primero intenta leer site_logo.png (cuando existe localmente o fue subido
+    # a GitHub). Si no existe, intenta leer el logo incrustado en
+    # site_settings.json como base64. Esto corrige el caso de Streamlit Cloud:
+    # la app publicada no puede ver archivos que solo están en tu computadora.
     try:
-        logo = Image.open(CUSTOM_LOGO_FILE).convert("RGBA")
+        if CUSTOM_LOGO_FILE.exists():
+            logo = Image.open(CUSTOM_LOGO_FILE).convert("RGBA")
+        else:
+            settings = load_site_settings()
+            logo_b64 = settings.get("site_logo_b64", "").strip()
+            if not logo_b64:
+                return get_logo_badge_b64(size=size, bg=bg, radius=radius)
+            logo_bytes = base64.b64decode(logo_b64)
+            logo = Image.open(io.BytesIO(logo_bytes)).convert("RGBA")
     except Exception:
         return get_logo_badge_b64(size=size, bg=bg, radius=radius)
 
@@ -583,9 +600,12 @@ st.markdown(
 # ---- HERO ----
 if CUSTOM_LOGO_FILE.exists():
     _logo_stat = CUSTOM_LOGO_FILE.stat()
-    _logo_fingerprint = f"{_logo_stat.st_mtime_ns}-{_logo_stat.st_size}"
+    _logo_fingerprint = f"archivo-{_logo_stat.st_mtime_ns}-{_logo_stat.st_size}"
 else:
-    _logo_fingerprint = "sin-logo-personalizado"
+    # Si el logo está guardado dentro de site_settings.json, úsalo también
+    # para identificar el cambio en Streamlit Cloud.
+    _settings_logo_b64 = _site_settings.get("site_logo_b64", "")
+    _logo_fingerprint = f"json-{len(_settings_logo_b64)}-{_settings_logo_b64[:24]}" if _settings_logo_b64 else "sin-logo-personalizado"
 logo_badge_b64 = get_custom_badge_b64(logo_fingerprint=_logo_fingerprint)
 st.markdown(
     f"""
@@ -867,4 +887,3 @@ else:
 # Render del diálogo si está activo
 if st.session_state.get("_add_dialog_prod"):
     _render_add_dialog()
-
