@@ -383,6 +383,55 @@ def cart_count():
 _settings = load_site_settings()
 _site_name = _settings.get("site_name", "Amazonia")
 _site_market = _settings.get("site_market", "MARKET")
+_site_bg_b64 = _settings.get("site_bg_b64", "").strip()
+try:
+    _site_bg_brightness = float(_settings.get("site_bg_brightness", "1.0"))
+except (ValueError, TypeError):
+    _site_bg_brightness = 1.0
+try:
+    _site_bg_opacity = float(_settings.get("site_bg_opacity", "0.6"))
+except (ValueError, TypeError):
+    _site_bg_opacity = 0.6
+
+# --- Hero (banda superior) personalizado ---
+_hero_bg_b64   = _settings.get("hero_bg_b64", "").strip()
+_hero_bg_color = _settings.get("hero_bg_color", "").strip()
+try:
+    _hero_brightness = float(_settings.get("hero_brightness", "1.0"))
+except (ValueError, TypeError):
+    _hero_brightness = 1.0
+try:
+    _hero_opacity = float(_settings.get("hero_opacity", "1.0"))
+except (ValueError, TypeError):
+    _hero_opacity = 1.0
+
+# --- Logo: alineacion y tamano ---
+_logo_align = _settings.get("logo_align", "left")
+if _logo_align not in ("left", "center", "right"):
+    _logo_align = "left"
+try:
+    _logo_size = int(_settings.get("logo_size", "104"))
+except (ValueError, TypeError):
+    _logo_size = 104
+_logo_size = max(48, min(300, _logo_size))
+# El hero crece proporcionalmente al logo
+_hero_min_height = max(180, _logo_size + 90)
+_hero_align_css = {"left": "flex-start", "center": "center", "right": "flex-end"}[_logo_align]
+
+# --- Borde de las imagenes de producto ---
+_img_border_color = _settings.get("img_border_color", "#E2E8F0")
+try:
+    _img_border_width = int(_settings.get("img_border_width", "1"))
+except (ValueError, TypeError):
+    _img_border_width = 1
+_img_border_width = max(0, min(20, _img_border_width))
+
+# --- Colores del CARRITO (personalizables desde el editor de la app) ---
+_cart_card_bg    = _settings.get("cart_card_bg",    "#FFFFFF") or "#FFFFFF"
+_cart_name_color = _settings.get("cart_name_color", "#0F172A") or "#0F172A"
+_cart_unit_color = _settings.get("cart_unit_color", "#64748B") or "#64748B"
+_cart_price_bg   = _settings.get("cart_price_bg",   "#16A34A") or "#16A34A"
+_cart_price_fg   = _settings.get("cart_price_fg",   "#FFFFFF") or "#FFFFFF"
 st.set_page_config(page_title=f"{_site_name} {_site_market}", page_icon="🛒", layout="wide")
 
 logo_b64      = get_logo_b64()
@@ -597,6 +646,135 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+
+# ---- Estilos responsive (móvil) + fondo personalizado ----
+st.markdown(
+    f"""
+    <style>
+      @media (max-width: 640px) {{
+        .am-hero {{ padding: 18px 16px !important; min-height: unset !important; }}
+        .am-hero-inner {{
+          flex-direction: column !important;
+          align-items: center !important;
+          text-align: center !important;
+          gap: 10px !important;
+        }}
+        .am-hero-badge {{
+          width: 78px !important; height: 78px !important; border-radius: 18px !important;
+        }}
+        .am-hero-title {{ font-size: 26px !important; line-height: 1.1 !important; }}
+        .am-hero-title .market {{
+          font-size: 15px !important; letter-spacing: 1.4px !important;
+          display: block !important; margin: 4px 0 0 0 !important;
+        }}
+        .am-hero-status {{ font-size: 12px !important; padding: 4px 10px !important; }}
+        .main .block-container {{ padding-left: 12px !important; padding-right: 12px !important; }}
+      }}
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+if _site_bg_b64:
+    st.markdown(
+        f"""
+        <style>
+          /* Fondo personalizado subido desde la app de escritorio */
+          .stApp {{
+            background-image: none !important;
+            background-color: transparent !important;
+          }}
+          .am-site-bg {{
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-image: url("data:image/png;base64,{_site_bg_b64}");
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            filter: brightness({_site_bg_brightness});
+            opacity: {_site_bg_opacity};
+            pointer-events: none;
+          }}
+          .main .block-container, .am-hero {{ position: relative; z-index: 1; }}
+        </style>
+        <div class="am-site-bg"></div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+# ---- Overrides personalizados de HERO / LOGO / BORDES ----
+_hero_override_css = ""
+if _hero_bg_b64:
+    _hero_override_css = f"""
+      .am-hero {{
+        background-color: transparent !important;
+        background-image: url("data:image/jpeg;base64,{_hero_bg_b64}") !important;
+        background-repeat: no-repeat !important;
+        background-size: cover !important;
+        background-position: center center !important;
+        background-blend-mode: normal !important;
+        filter: brightness({_hero_brightness});
+        opacity: {_hero_opacity};
+      }}
+    """
+elif _hero_bg_color:
+    _hero_override_css = f"""
+      .am-hero {{
+        background-color: {_hero_bg_color} !important;
+        background-image: none !important;
+        background-blend-mode: normal !important;
+        filter: brightness({_hero_brightness});
+        opacity: {_hero_opacity};
+      }}
+    """
+
+_badge_size = _logo_size
+_hero_extra_css = f"""
+  .am-hero {{ min-height: {_hero_min_height}px !important; }}
+  .am-hero-inner {{
+    justify-content: {_hero_align_css} !important;
+    width: 100%;
+  }}
+  .am-hero-badge {{
+    width: {_badge_size}px !important;
+    height: {_badge_size}px !important;
+  }}
+  .am-hero-title {{
+    font-size: {max(28, int(_logo_size * 0.42))}px !important;
+  }}
+  .am-hero-title .market {{
+    font-size: {max(18, int(_logo_size * 0.26))}px !important;
+  }}
+  /* Borde personalizable en imagenes de producto */
+  .am-card img {{
+    border: {_img_border_width}px solid {_img_border_color} !important;
+  }}
+  /* Tarjetas del carrito con fondo blanco bien visible */
+  .am-cart-item {{
+    background: #ffffff;
+    border: 1px solid #E2E8F0;
+    border-radius: 14px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.10);
+  }}
+  .am-cart-item img {{
+    border: {_img_border_width}px solid {_img_border_color};
+    border-radius: 10px;
+    background: #fff;
+  }}
+  .am-cart-item .am-cart-name {{
+    color: {COLOR_TEXT}; font-weight: 700; font-size: 15px;
+  }}
+  .am-cart-item .am-cart-unit {{
+    color: {COLOR_MUTED}; font-size: 12px; margin-top: 2px;
+  }}
+"""
+st.markdown(f"<style>{_hero_override_css}{_hero_extra_css}</style>",
+            unsafe_allow_html=True)
+
 # ---- HERO ----
 if CUSTOM_LOGO_FILE.exists():
     _logo_stat = CUSTOM_LOGO_FILE.stat()
@@ -604,7 +782,7 @@ if CUSTOM_LOGO_FILE.exists():
 else:
     # Si el logo está guardado dentro de site_settings.json, úsalo también
     # para identificar el cambio en Streamlit Cloud.
-    _settings_logo_b64 = _site_settings.get("site_logo_b64", "")
+    _settings_logo_b64 = _settings.get("site_logo_b64", "")
     _logo_fingerprint = f"json-{len(_settings_logo_b64)}-{_settings_logo_b64[:24]}" if _settings_logo_b64 else "sin-logo-personalizado"
 logo_badge_b64 = get_custom_badge_b64(logo_fingerprint=_logo_fingerprint)
 st.markdown(
@@ -735,6 +913,38 @@ if view == "cart":
     st.markdown('<div class="am-section-title">🛒 Tu carrito</div>',
                 unsafe_allow_html=True)
 
+    # Estilos aplicables solo cuando se ve el carrito: cada producto queda
+    # dentro de una TARJETA BLANCA para que se vean bien nombre y precio.
+    st.markdown(
+        f"""
+        <style>
+          /* Tarjeta blanca por cada producto del carrito */
+          div[data-testid="stVerticalBlockBorderWrapper"] {{
+            background: {_cart_card_bg} !important;
+            border: 1px solid #E2E8F0 !important;
+            border-radius: 14px !important;
+            padding: 10px 12px !important;
+            margin-bottom: 12px !important;
+            box-shadow: 0 4px 14px rgba(0,0,0,.10) !important;
+          }}
+          /* Precio total por linea: cuadrito verde con numeros blancos */
+          .am-cart-linetotal {{
+            display:inline-block; background:{_cart_price_bg}; color:{_cart_price_fg} !important;
+            font-weight:800; font-size:16px; padding:6px 14px;
+            border-radius:10px;
+            box-shadow:0 2px 6px rgba(0,0,0,.20);
+          }}
+          .am-cart-name-strong {{
+            color:{_cart_name_color}; font-weight:800; font-size:16px;
+          }}
+          .am-cart-unit-strong {{
+            color:{_cart_unit_color}; font-size:12px; margin-top:2px;
+          }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
     cart = _cart()
     if not cart:
         st.markdown(
@@ -744,40 +954,49 @@ if view == "cart":
         )
     else:
         for name, it in list(cart.items()):
-            c1, c2, c3, c4, c5 = st.columns([1, 3, 2, 2, 1])
-            with c1:
-                st.markdown(
-                    f'<img src="{img_to_data_uri(it["imagen"])}" '
-                    f'style="width:64px;height:64px;object-fit:cover;'
-                    f'border-radius:10px;border:1px solid #E2E8F0;background:#fff;"/>',
-                    unsafe_allow_html=True,
-                )
-            with c2:
-                st.markdown(f"**{name}**")
-                st.caption(f"{format_price(it['precio'])} c/u")
-            with c3:
-                b1, bq, b2 = st.columns([1, 1, 1])
-                with b1:
-                    if st.button("−", key=f"cart_minus_{name}"):
-                        cart_set(name, it["qty"] - 1); st.rerun()
-                with bq:
+            with st.container(border=True):
+                c1, c2, c3, c4, c5 = st.columns([1, 3, 2, 2, 1])
+                with c1:
                     st.markdown(
-                        f'<div style="text-align:center;font-weight:700;'
-                        f'padding-top:6px;color:{COLOR_PRIMARY};">{it["qty"]}</div>',
+                        f'<img src="{img_to_data_uri(it["imagen"])}" '
+                        f'style="width:64px;height:64px;object-fit:cover;'
+                        f'border-radius:10px;border:{_img_border_width}px solid '
+                        f'{_img_border_color};background:#fff;"/>',
                         unsafe_allow_html=True,
                     )
-                with b2:
-                    if st.button("+", key=f"cart_plus_{name}"):
-                        cart_set(name, it["qty"] + 1); st.rerun()
-            with c4:
-                st.markdown(
-                    f'<div style="padding-top:8px;font-weight:700;'
-                    f'color:#4ADE80;">{format_price(it["precio"]*it["qty"])}</div>',
-                    unsafe_allow_html=True,
-                )
-            with c5:
-                if st.button("🗑", key=f"cart_del_{name}"):
-                    cart_set(name, 0); st.rerun()
+                with c2:
+                    st.markdown(
+                        f'<div class="am-cart-name-strong">{name}</div>'
+                        f'<div class="am-cart-unit-strong">'
+                        f'{format_price(it["precio"])} c/u</div>',
+                        unsafe_allow_html=True,
+                    )
+                with c3:
+                    b1, bq, b2 = st.columns([1, 1, 1])
+                    with b1:
+                        if st.button("−", key=f"cart_minus_{name}"):
+                            cart_set(name, it["qty"] - 1); st.rerun()
+                    with bq:
+                        st.markdown(
+                            f'<div style="text-align:center;font-weight:800;'
+                            f'padding-top:8px;color:{COLOR_PRIMARY};font-size:18px;">'
+                            f'{it["qty"]}</div>',
+                            unsafe_allow_html=True,
+                        )
+                    with b2:
+                        if st.button("+", key=f"cart_plus_{name}"):
+                            cart_set(name, it["qty"] + 1); st.rerun()
+                with c4:
+                    st.markdown(
+                        f'<div style="padding-top:4px;">'
+                        f'<span class="am-cart-linetotal">'
+                        f'{format_price(it["precio"] * it["qty"])}'
+                        f'</span></div>',
+                        unsafe_allow_html=True,
+                    )
+                with c5:
+                    if st.button("🗑", key=f"cart_del_{name}"):
+                        cart_set(name, 0); st.rerun()
 
         st.markdown("---")
         tt1, tt2 = st.columns([3, 1])
