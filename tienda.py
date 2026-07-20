@@ -1,13 +1,7 @@
 # ==========================================================
 # AMAZONIA MARKET - Tienda Virtual (Streamlit)
 # ==========================================================
-# Ejecutar directamente:
 #     streamlit run tienda.py
-#
-# Normalmente NO se ejecuta a mano: se abre sola al correr
-# `python agregar_producto.py`, que lanza esta tienda y
-# la ventana de Tkinter para agregar productos.
-#
 # Requisitos:  pip install streamlit pillow
 # ==========================================================
 
@@ -17,59 +11,272 @@ import json
 from pathlib import Path
 
 import streamlit as st
-from PIL import Image
+from PIL import Image, ImageFilter
 
-BASE_DIR  = Path(__file__).parent.resolve()
-DATA_FILE = BASE_DIR / "products.json"
-IMG_DIR   = BASE_DIR / "product_images"
+BASE_DIR    = Path(__file__).parent.resolve()
+DATA_FILE   = BASE_DIR / "products.json"
+CATS_FILE   = BASE_DIR / "categories.json"
+IMG_DIR     = BASE_DIR / "product_images"
+LOGO_FILE   = BASE_DIR / "logo.b64"
+BANNER_FILE = BASE_DIR / "banner.png"
 IMG_DIR.mkdir(exist_ok=True)
+
+# --- Personalización de la página (editable desde la app de escritorio) ---
+SETTINGS_FILE    = BASE_DIR / "site_settings.json"
+CUSTOM_LOGO_FILE = BASE_DIR / "site_logo.png"
+
+def load_site_settings() -> dict:
+    """Lee el nombre y el logo personalizados. Si no existen, usa los valores por defecto."""
+    defaults = {"site_name": "Amazonia", "site_market": "MARKET"}
+    if SETTINGS_FILE.exists():
+        try:
+            data = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                defaults.update({k: v for k, v in data.items() if isinstance(v, str) and v.strip()})
+        except Exception:
+            pass
+    return defaults
+
+def get_banner_data_uri() -> str:
+    # 1) banner.png / banner.jpg junto al script (si el usuario quiere reemplazarlo)
+    for ext, mime in (("png", "image/png"), ("jpg", "image/jpeg"), ("jpeg", "image/jpeg")):
+        f = BASE_DIR / f"banner.{ext}"
+        if f.exists():
+            try:
+                return f"data:{mime};base64," + base64.b64encode(f.read_bytes()).decode()
+            except Exception:
+                pass
+    # 2) Fallback: banner incrustado en el propio código (no requiere archivo externo)
+    try:
+        from banner_embed import EMBEDDED_BANNER_B64
+        return "data:image/jpeg;base64," + EMBEDDED_BANNER_B64
+    except Exception:
+        return ""
 
 PRODUCTS_PER_PAGE = 12
 
-# Paleta de marca
-COLOR_PRIMARY = "#4C1D95"   # morado principal (banda del hero)
-COLOR_PRIMARY_2 = "#7C3AED" # morado claro
-COLOR_ACCENT  = "#FFD400"
-COLOR_BG      = "#E6E1F5"
-COLOR_CARD    = "#FFFFFF"
-COLOR_TEXT    = "#0F172A"
-COLOR_MUTED   = "#64748B"
+# --- Paleta (azul brillante + gris claro) ---
+COLOR_PRIMARY   = "#1D4ED8"   # azul del logo (carrito)
+COLOR_PRIMARY_2 = "#2563EB"   # azul brillante
+COLOR_PRIMARY_3 = "#3B82F6"   # azul claro brillante
+COLOR_ACCENT    = "#F59E0B"
+COLOR_BG_GRAY   = "#E5E7EB"   # gris claro brillante de fondo
+COLOR_CARD      = "#FFFFFF"
+COLOR_TEXT      = "#0F172A"
+COLOR_MUTED     = "#64748B"
+
+# Patrón de carritos de compras para el fondo.
+# Si existe "carts_pattern.jpg" (o .png) junto al script, se usa esa imagen
+# (carritos grises realistas, mismo estilo que la portada). Si no, se usa
+# un fallback SVG sencillo para que la app no se rompa.
+def get_carts_pattern_data_uri() -> str:
+    for ext, mime in (("jpg", "image/jpeg"), ("jpeg", "image/jpeg"), ("png", "image/png")):
+        f = BASE_DIR / f"carts_pattern.{ext}"
+        if f.exists():
+            try:
+                return f"data:{mime};base64," + base64.b64encode(f.read_bytes()).decode()
+            except Exception:
+                pass
+    # Fallback: patrón SVG con carritos de compras realistas de tamaños
+    # variados repartidos por todo el mosaico. Este patrón se usa como
+    # textura de fondo (repeat) en la portada.
+    cart = (
+        '<g fill="none" stroke="#475569" stroke-width="2.2" '
+        'stroke-linecap="round" stroke-linejoin="round">'
+        '<path d="M4 8 h12 l4 6 h60 l-8 30 h-46 z"/>'
+        '<path d="M22 20 h50" opacity="0.55"/>'
+        '<path d="M26 30 h44" opacity="0.55"/>'
+        '<path d="M32 14 v30" opacity="0.55"/>'
+        '<path d="M46 14 v30" opacity="0.55"/>'
+        '<path d="M60 14 v30" opacity="0.55"/>'
+        '<path d="M24 44 l-4 8"/>'
+        '<path d="M70 44 l4 8"/>'
+        '<circle cx="30" cy="56" r="5" fill="#475569"/>'
+        '<circle cx="66" cy="56" r="5" fill="#475569"/>'
+        '<path d="M16 14 l-6 -6 h-6"/>'
+        "</g>"
+    )
+    def place(x, y, s, op=0.55, rot=0):
+        return (
+            f'<g transform="translate({x},{y}) rotate({rot}) scale({s})" '
+            f'opacity="{op}">{cart}</g>'
+        )
+    carts_svg = "".join([
+        place(30,  50, 1.10, 0.55),
+        place(230, 30, 0.75, 0.45, -6),
+        place(380, 90, 1.35, 0.60),
+        place(90,  230, 0.85, 0.45, 4),
+        place(260, 210, 1.15, 0.55),
+        place(430, 260, 0.70, 0.40, -8),
+        place(40,  380, 0.95, 0.50, 6),
+        place(210, 400, 1.25, 0.55),
+        place(400, 420, 0.80, 0.45),
+        place(150, 130, 0.60, 0.35, 10),
+        place(350, 360, 0.55, 0.35, -4),
+    ])
+    svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="560" height="560" '
+        'viewBox="0 0 560 560">'
+        '<rect width="560" height="560" fill="#B7BDC6"/>'
+        f"{carts_svg}"
+        "</svg>"
+    )
+    return "data:image/svg+xml;base64," + base64.b64encode(svg.encode("utf-8")).decode()
 
 # ----------------------------------------------------------
-# LOGO EMBEBIDO
+# Logo
 # ----------------------------------------------------------
-LOGO_B64 = """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"""
+def _load_logo() -> Image.Image:
+    if LOGO_FILE.exists():
+        raw = base64.b64decode(LOGO_FILE.read_text().strip())
+        return Image.open(io.BytesIO(raw)).convert("RGBA")
+    img = Image.new("RGBA", (400, 120), (11, 42, 107, 255))
+    return img
 
-
-def _clean_logo(b64: str) -> str:
-    """Decodifica el logo, elimina los bordes/fondo negros
-    (los vuelve transparentes) y recorta al contenido real
-    (letras + figura). Devuelve un PNG en base64 listo
-    para inyectar dentro del hero morado."""
-    raw = base64.b64decode(b64)
-    img = Image.open(io.BytesIO(raw)).convert("RGBA")
-    px = img.load()
-    w, h = img.size
-    # Mantener solo pixeles claramente claros (letras blancas) o
-    # claramente saturados (azul del carrito). Todo lo demas
-    # (bordes negros, barra de navegacion gris, sombras) -> transparente.
-    for y in range(h):
-        for x in range(w):
-            r, g, b, _ = px[x, y]
-            mx = max(r, g, b); mn = min(r, g, b)
-            if not (mx >= 180 or (mx - mn) >= 55):
-                px[x, y] = (0, 0, 0, 0)
-    bbox = img.getbbox()
-    if bbox:
-        img = img.crop(bbox)
+@st.cache_data(show_spinner=False)
+def get_logo_b64() -> str:
+    img = _load_logo()
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return base64.b64encode(buf.getvalue()).decode()
 
+@st.cache_data(show_spinner=False)
+def get_logo_watermark_b64(opacity: float = 0.10, radius: int = 3) -> str:
+    """Logo blanco difuminado para patrón de fondo sobre azul."""
+    img = _load_logo()
+    # Convertimos el logo a blanco puro conservando alpha
+    r, g, b, a = img.split()
+    white = Image.new("RGBA", img.size, (255, 255, 255, 0))
+    white.putalpha(a.point(lambda v: int(v * opacity)))
+    white = white.filter(ImageFilter.GaussianBlur(radius=radius))
+    buf = io.BytesIO()
+    white.save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode()
 
 @st.cache_data(show_spinner=False)
-def get_logo_png_b64() -> str:
-    return _clean_logo(LOGO_B64)
+def get_logo_badge_b64(size: int = 160, bg=(55, 65, 81), radius: int = 32) -> str:
+    """
+    Badge cuadrado con esquinas redondeadas que contiene el LOGO REAL
+    de Amazonia Market (carrito azul + 'Amazonia' cursiva blanca + 'MARKET'
+    azul), tal cual sale en la imagen del logo, pero pequeñito. Se le añade
+    un contorno negro alrededor de todo lo visible para que las letras y el
+    carrito destaquen sobre el fondo gris del badge.
+    """
+    from PIL import ImageDraw
+    logo = _load_logo().copy()
+
+    # 1) Quitar fondo claro (gris/blanco) del logo original -> transparente,
+    #    conservando el resto de colores del logo (azul, blanco de la cursiva).
+    px = logo.load()
+    w, h = logo.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            # gris muy claro / casi blanco = fondo
+            if r > 225 and g > 225 and b > 225:
+                px[x, y] = (0, 0, 0, 0)
+
+    # 2) Recortar al bounding box de los pixeles visibles para que el logo
+    #    llene el badge (nada de márgenes vacíos).
+    bbox = logo.split()[-1].getbbox()
+    if bbox:
+        logo = logo.crop(bbox)
+
+    # 3) Contorno negro grueso alrededor de las letras/carrito.
+    alpha = logo.split()[-1]
+    outline = Image.new("RGBA", logo.size, (0, 0, 0, 0))
+    for dx in (-3, -2, -1, 0, 1, 2, 3):
+        for dy in (-3, -2, -1, 0, 1, 2, 3):
+            if dx == 0 and dy == 0:
+                continue
+            shifted = Image.new("L", logo.size, 0)
+            shifted.paste(alpha, (dx, dy))
+            black = Image.new("RGBA", logo.size, (0, 0, 0, 255))
+            black.putalpha(shifted)
+            outline = Image.alpha_composite(outline, black)
+    logo_outlined = Image.alpha_composite(outline, logo)
+
+    # 4) Badge cuadrado con fondo gris fuerte y esquinas redondeadas.
+    badge = Image.new("RGBA", (size, size), (*bg, 255))
+    mask = Image.new("L", (size, size), 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, size, size), radius=radius, fill=255)
+
+    padding = int(size * 0.10)
+    max_w = size - 2 * padding
+    lw, lh = logo_outlined.size
+    scale = min(max_w / lw, max_w / lh) if lw and lh else 1
+    new_w, new_h = max(1, int(lw * scale)), max(1, int(lh * scale))
+    logo_resized = logo_outlined.resize((new_w, new_h), Image.LANCZOS)
+
+    x = (size - new_w) // 2
+    y = (size - new_h) // 2
+    badge.paste(logo_resized, (x, y), logo_resized)
+    badge.putalpha(mask)
+
+    buf = io.BytesIO()
+    badge.save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode()
+
+def get_custom_badge_b64(size: int = 160, radius: int = 32,
+                         bg=(55, 65, 81), shadow_pad: int = 12,
+                          logo_fingerprint: str = "") -> str:
+    """
+    Si existe un logo personalizado (site_logo.png) lo renderiza dentro de un
+    badge cuadrado con esquinas redondeadas, fondo oscuro y sombra alrededor.
+    Devuelve la imagen final en base64. Si no hay logo personalizado, cae al
+    badge por defecto con el logo original de Amazonia Market.
+
+    `logo_fingerprint` identifica el archivo actual. Esta función NO se cachea
+    porque el logo lo cambia otra app (Tkinter) mientras Streamlit sigue abierto.
+    """
+    from PIL import ImageDraw
+    if not CUSTOM_LOGO_FILE.exists():
+        return get_logo_badge_b64(size=size, bg=bg, radius=radius)
+
+    try:
+        logo = Image.open(CUSTOM_LOGO_FILE).convert("RGBA")
+    except Exception:
+        return get_logo_badge_b64(size=size, bg=bg, radius=radius)
+
+    # Lienzo total incluye espacio para la sombra
+    total = size + shadow_pad * 2
+    canvas = Image.new("RGBA", (total, total), (0, 0, 0, 0))
+
+    # 1) Sombra: rectángulo redondeado negro difuminado
+    shadow = Image.new("RGBA", (total, total), (0, 0, 0, 0))
+    ImageDraw.Draw(shadow).rounded_rectangle(
+        (shadow_pad, shadow_pad, shadow_pad + size, shadow_pad + size),
+        radius=radius, fill=(0, 0, 0, 170)
+    )
+    shadow = shadow.filter(ImageFilter.GaussianBlur(radius=shadow_pad // 2 + 3))
+    canvas = Image.alpha_composite(canvas, shadow)
+
+    # 2) Badge con fondo oscuro
+    badge = Image.new("RGBA", (size, size), (*bg, 255))
+
+    # 3) Ajustar la imagen del usuario dentro del badge (contain, con padding)
+    padding = int(size * 0.08)
+    inner = size - 2 * padding
+    lw, lh = logo.size
+    scale = min(inner / lw, inner / lh) if lw and lh else 1
+    new_w, new_h = max(1, int(lw * scale)), max(1, int(lh * scale))
+    logo_resized = logo.resize((new_w, new_h), Image.LANCZOS)
+    x = (size - new_w) // 2
+    y = (size - new_h) // 2
+    badge.paste(logo_resized, (x, y), logo_resized)
+
+    # 4) Máscara de esquinas redondeadas
+    mask = Image.new("L", (size, size), 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, size, size), radius=radius, fill=255)
+    badge.putalpha(mask)
+
+    # 5) Pegar el badge sobre el canvas (encima de la sombra)
+    canvas.paste(badge, (shadow_pad, shadow_pad), badge)
+
+    buf = io.BytesIO()
+    canvas.save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode()
+
 
 
 # ----------------------------------------------------------
@@ -83,22 +290,13 @@ def load_products():
     except Exception:
         return []
 
-
-def save_products(prods) -> None:
-    DATA_FILE.write_text(
-        json.dumps(prods, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-
-
-def delete_product(prod) -> None:
-    all_p = load_products()
-    for i, p in enumerate(all_p):
-        if p == prod:
-            all_p.pop(i)
-            break
-    save_products(all_p)
-
+def load_categories():
+    if not CATS_FILE.exists():
+        return []
+    try:
+        return json.loads(CATS_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return []
 
 def format_price(p) -> str:
     try:
@@ -106,221 +304,567 @@ def format_price(p) -> str:
     except Exception:
         return f"${p}"
 
-
+def img_to_data_uri(rel_path: str) -> str:
+    if rel_path:
+        full = BASE_DIR / rel_path
+        if full.exists():
+            try:
+                return "data:image/png;base64," + base64.b64encode(
+                    full.read_bytes()
+                ).decode()
+            except Exception:
+                pass
+    return (
+        "data:image/svg+xml;base64," + base64.b64encode(
+            b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
+            b'<rect width="100" height="100" fill="#f1f5f9"/>'
+            b'<text x="50" y="55" text-anchor="middle" fill="#94a3b8" '
+            b'font-family="Arial" font-size="10">sin imagen</text></svg>'
+        ).decode()
+    )
 
 # ----------------------------------------------------------
-# UI
+# Carrito (session_state)
 # ----------------------------------------------------------
-st.set_page_config(
-    page_title="Amazonia Market",
-    page_icon="🛒",
-    layout="wide",
-)
+def _cart():
+    if "cart" not in st.session_state:
+        st.session_state.cart = {}
+    return st.session_state.cart
 
+def cart_add(prod, qty=1):
+    c = _cart()
+    key = prod.get("nombre", "")
+    if key in c:
+        c[key]["qty"] += qty
+    else:
+        c[key] = {
+            "nombre": key,
+            "precio": float(prod.get("precio", 0) or 0),
+            "imagen": prod.get("imagen", ""),
+            "qty": qty,
+        }
+    if c[key]["qty"] <= 0:
+        c.pop(key, None)
+
+def cart_set(name, qty):
+    c = _cart()
+    if name in c:
+        if qty <= 0:
+            c.pop(name, None)
+        else:
+            c[name]["qty"] = qty
+
+def cart_total():
+    return sum(i["precio"] * i["qty"] for i in _cart().values())
+
+def cart_count():
+    return sum(i["qty"] for i in _cart().values())
+
+# ----------------------------------------------------------
+# Config
+# ----------------------------------------------------------
+_settings = load_site_settings()
+_site_name = _settings.get("site_name", "Amazonia")
+_site_market = _settings.get("site_market", "MARKET")
+st.set_page_config(page_title=f"{_site_name} {_site_market}", page_icon="🛒", layout="wide")
+
+logo_b64      = get_logo_b64()
+logo_wm_b64   = get_logo_watermark_b64()
+carts_bg_uri  = get_carts_pattern_data_uri()
+
+# ---- CSS global ----
 st.markdown(
     f"""
     <style>
-      .stApp {{ background: {COLOR_BG}; }}
-      header[data-testid="stHeader"] {{ display:none; }}
-      .block-container {{ padding-top: 0 !important; max-width: 1200px; }}
+      /* Fondo gris claro con patrón de carritos de compras REALES */
+      .stApp {{
+        background-color: {COLOR_BG_GRAY};
+        background-image: url("{carts_bg_uri}");
+        background-repeat: repeat;
+        background-size: 520px 520px;
+      }}
+      .main .block-container {{
+        position: relative; z-index: 1;
+        padding-top: 1rem; max-width: 1200px;
+      }}
 
+      /* Ocultar la barra blanca superior de Streamlit para que la portada
+         llegue hasta arriba, sin franja blanca. */
+      header[data-testid="stHeader"] {{
+        background: transparent !important;
+        height: 0 !important;
+      }}
+      #MainMenu, footer {{ visibility: hidden; }}
+      .main .block-container {{ padding-top: 0 !important; }}
+
+      /* ---------- HERO estilo Gerald's ---------- */
       .am-hero {{
-        background: linear-gradient(135deg, {COLOR_PRIMARY} 0%, {COLOR_PRIMARY_2} 100%);
-        border-radius: 0 0 28px 28px;
-        padding: 34px 40px 42px 40px;
-        margin: 0 -1rem 28px -1rem;
+        position: relative;
+        width: 100vw;
+        margin-left: calc(50% - 50vw);
+        margin-right: calc(50% - 50vw);
+        margin-top: 0;
+        margin-bottom: 20px;
+        min-height: 210px;
+        overflow: hidden;
+        /* Gris más oscuro que el resto de la app para que sobresalga */
+        background-color: #7F8794;
+        background-image: url("{carts_bg_uri}");
+        background-repeat: repeat;
+        background-size: 320px 320px;
+        background-blend-mode: multiply;
         display: flex;
         align-items: center;
-        justify-content: center;
-        box-shadow: 0 12px 32px rgba(76,29,149,.28);
+        padding: 30px 48px;
       }}
-      .am-hero img {{
-        max-height: 180px;
-        width: auto;
-        filter: drop-shadow(0 6px 14px rgba(0,0,0,.25));
+      .am-hero-inner {{
+        position: relative; z-index: 1;
+        display: flex; align-items: center; gap: 22px;
       }}
-      .am-sub {{
-        text-align:center;
-        color: {COLOR_MUTED};
-        margin: -12px 0 22px 0;
-        font-size: 15px;
-        letter-spacing: .3px;
+      .am-hero-badge {{
+        width: 104px; height: 104px; border-radius: 24px;
+        box-shadow: 0 12px 28px rgba(0,0,0,.35);
+        display: block;
       }}
+      .am-hero-info {{ display: flex; flex-direction: column; gap: 10px; }}
+      .am-hero-title {{
+        margin: 0;
+        font-family: "Brush Script MT", "Lucida Handwriting", cursive;
+        color: #fff;
+        font-weight: 700;
+        font-size: 34px;
+        line-height: 1;
+        -webkit-text-stroke: 1.5px #000;
+        text-shadow: 0 2px 6px rgba(0,0,0,.5);
+      }}
+      .am-hero-title .market {{
+        font-family: "Arial Black", "Helvetica", sans-serif;
+        color: {COLOR_PRIMARY};
+        font-size: 22px;
+        letter-spacing: 2px;
+        margin-left: 8px;
+        -webkit-text-stroke: 1.2px #000;
+      }}
+      .am-hero-status {{
+        display: inline-flex; align-items: center; gap: 8px;
+        background: rgba(0,0,0,.45);
+        color: #fff; font-weight: 600; font-size: 14px;
+        padding: 6px 14px; border-radius: 999px;
+        width: fit-content;
+        backdrop-filter: blur(4px);
+      }}
+      .am-hero-dot {{
+        width: 10px; height: 10px; border-radius: 50%;
+        background: #22C55E; box-shadow: 0 0 8px #22C55E;
+      }}
+
+
+      /* Barra superior del carrito */
+      .am-topbar {{
+        display:flex; align-items:center; justify-content:flex-end;
+        gap:10px; margin: 0 0 8px 0;
+      }}
+
+      /* Apartados */
+      .am-cat {{
+        display:flex; align-items:center; justify-content:space-between;
+        background: linear-gradient(135deg, {COLOR_PRIMARY} 0%, {COLOR_PRIMARY_3} 100%);
+        color: #fff !important; text-decoration: none !important;
+        padding: 28px 28px; border-radius: 18px;
+        margin-bottom: 16px; font-size: 22px; font-weight: 800;
+        box-shadow: 0 10px 24px rgba(29,78,216,.35);
+        transition: transform .15s ease, box-shadow .15s ease;
+      }}
+      .am-cat:hover {{ transform: translateY(-2px);
+        box-shadow: 0 14px 30px rgba(29,78,216,.45); }}
+      .am-cat .count {{
+        background: rgba(255,255,255,.22); padding: 4px 12px;
+        border-radius: 999px; font-size: 13px; font-weight: 600;
+      }}
+      .am-section-title {{
+        color: {COLOR_PRIMARY}; font-weight: 900; font-size: 24px;
+        margin: 6px 0 14px 0;
+        text-shadow: 0 1px 2px rgba(255,255,255,.6);
+      }}
+
+      /* --------- Botones de Streamlit en AZUL BRILLANTE y anchos --------- */
+      /* Botones normales (apartados, carrito, etc.) */
+      div[data-testid="stButton"] > button {{
+        background: linear-gradient(135deg, {COLOR_PRIMARY} 0%, {COLOR_PRIMARY_3} 100%) !important;
+        color: #fff !important;
+        border: none !important;
+        border-radius: 16px !important;
+        padding: 22px 26px !important;
+        font-size: 18px !important;
+        font-weight: 700 !important;
+        min-height: 68px !important;
+        box-shadow: 0 8px 20px rgba(29,78,216,.35) !important;
+        transition: transform .15s ease, box-shadow .15s ease !important;
+      }}
+      div[data-testid="stButton"] > button:hover {{
+        transform: translateY(-2px) !important;
+        box-shadow: 0 12px 26px rgba(29,78,216,.45) !important;
+        filter: brightness(1.05);
+      }}
+
+
+      /* Tarjetas de producto (compactas y redonditas) */
       .am-card {{
         background: {COLOR_CARD};
-        border-radius: 18px;
-        padding: 16px;
-        border: 2px solid #94A3B8;
-        box-shadow:
-          0 10px 22px rgba(15,23,42,.18),
-          0 2px 6px rgba(15,23,42,.10),
-          inset 0 0 0 1px rgba(255,255,255,.6);
-        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
-        height: 100%;
-      }}
-      .am-card:hover {{
-        transform: translateY(-3px);
-        border-color: {COLOR_PRIMARY};
-        box-shadow:
-          0 16px 32px rgba(76,29,149,.28),
-          0 4px 10px rgba(15,23,42,.12);
+        border-radius: 18px; padding: 14px 12px 12px 12px;
+        border: 1px solid #E2E8F0;
+        box-shadow: 0 10px 22px rgba(0,0,0,.18);
+        text-align: center;
+        margin-bottom: 6px;
       }}
       .am-card img {{
-        width: 100%;
-        aspect-ratio: 1/1;
-        object-fit: cover;
-        border-radius: 12px;
-        background: #f1f5f9;
+        width: 100%; aspect-ratio: 1/1; object-fit: contain;
+        border-radius: 12px; background: #f8fafc;
+        max-height: 170px;
       }}
       .am-name {{
-        font-weight: 600;
-        color: {COLOR_TEXT};
-        margin: 10px 4px 4px 4px;
-        font-size: 15px;
-        line-height: 1.25;
-        min-height: 38px;
+        font-weight: 600; color: {COLOR_TEXT};
+        margin: 10px 4px 6px 4px; font-size: 14px;
+        line-height: 1.25; min-height: 36px;
       }}
       .am-price {{
-        display: inline-block;
-        background: #16A34A;
-        color: #FFFFFF !important;
-        font-weight: 800;
-        font-size: 20px;
-        padding: 6px 12px;
-        border-radius: 10px;
-        margin: 4px 4px 10px 4px;
-        box-shadow: 0 2px 6px rgba(22,163,74,.25);
+        display:inline-block; background:#16A34A; color:#fff !important;
+        font-weight:800; font-size:16px; padding:5px 14px;
+        border-radius:10px; margin: 2px 0 6px 0;
+        box-shadow:0 2px 6px rgba(22,163,74,.25);
       }}
-      .am-btn {{
-        display:block;
-        text-align:center;
-        background: {COLOR_PRIMARY};
-        color: #fff !important;
-        text-decoration: none;
-        padding: 8px 10px;
-        border-radius: 10px;
-        font-weight: 600;
-        font-size: 14px;
+      .am-qty-badge {{
+        display:inline-block; background:{COLOR_PRIMARY}; color:#fff;
+        padding:2px 8px; border-radius:999px; font-size:11px;
+        font-weight:700; margin-left:6px;
       }}
-      .am-btn:hover {{ background: {COLOR_PRIMARY_2}; }}
+      /* Espaciador entre la tarjeta y el botón "Agregar al carrito" */
+      .am-card-gap {{ height: 10px; }}
       .am-empty {{
-        text-align:center;
-        padding: 60px 20px;
-        color: {COLOR_MUTED};
-        background: #fff;
-        border-radius: 16px;
-        border: 1px dashed #e5e7eb;
+        text-align:center; padding: 50px 20px; color:{COLOR_MUTED};
+        background:#fff; border-radius:16px; border:1px dashed #e5e7eb;
       }}
-      footer {{ visibility: hidden; }}
+      .stButton>button {{
+        border-radius: 12px; font-weight: 600;
+      }}
+      /* Botón "Agregar al carrito" — rojo/coral, con aire */
+      div[data-testid="stButton"] > button[kind="primary"] {{
+        background: #EF4444; border-color: #EF4444; color:#fff;
+        padding: 10px 14px;
+        box-shadow: 0 6px 14px rgba(239,68,68,.35);
+      }}
+      div[data-testid="stButton"] > button[kind="primary"]:hover {{
+        background: #DC2626; border-color: #DC2626;
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(220,38,38,.4);
+      }}
+
+      /* Modal cantidad */
+      .am-modal-img {{
+        display:block; margin: 0 auto 10px auto;
+        max-height: 160px; width:auto;
+        border-radius: 12px; background:#f8fafc;
+        border:1px solid #E2E8F0;
+      }}
+      .am-modal-name {{
+        text-align:center; font-weight:700; font-size:18px;
+        color:{COLOR_TEXT}; margin: 4px 0 2px 0;
+      }}
+      .am-modal-price {{
+        text-align:center; color:#16A34A; font-weight:800;
+        font-size:20px; margin-bottom: 14px;
+      }}
+      footer {{ visibility:hidden; }}
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-# ---- HERO con el LOGO grande dentro de la banda morada ----
+# ---- HERO ----
+if CUSTOM_LOGO_FILE.exists():
+    _logo_stat = CUSTOM_LOGO_FILE.stat()
+    _logo_fingerprint = f"{_logo_stat.st_mtime_ns}-{_logo_stat.st_size}"
+else:
+    _logo_fingerprint = "sin-logo-personalizado"
+logo_badge_b64 = get_custom_badge_b64(logo_fingerprint=_logo_fingerprint)
 st.markdown(
     f"""
     <div class="am-hero">
-      <img src="data:image/png;base64,{get_logo_png_b64()}" alt="Amazonia Market"/>
+      <div class="am-hero-inner">
+        <img class="am-hero-badge"
+             src="data:image/png;base64,{logo_badge_b64}"
+             alt="Amazonia Market"/>
+        <div class="am-hero-info">
+          <div class="am-hero-title">{_site_name}<span class="market">{_site_market}</span></div>
+          <div class="am-hero-status">
+            <span class="am-hero-dot"></span> Activo hasta las 9 p.m
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="am-sub">Tu tienda virtual · productos frescos y confiables</div>
     """,
     unsafe_allow_html=True,
 )
 
-# ---- Buscador ----
-col_s1, col_s2 = st.columns([3, 1])
-with col_s1:
-    query = st.text_input(
-        "Buscar producto",
-        placeholder="Ej: arroz, aceite, jabón...",
-        label_visibility="collapsed",
-    )
-with col_s2:
-    if st.button("🔄 Actualizar", use_container_width=True):
-        st.rerun()
 
+# ---- Router ----
 try:
-    IS_ADMIN = st.query_params.get("admin") == "1"
+    qp = st.query_params
+    current_cat = qp.get("cat", None)
+    view = qp.get("view", None)
+    if isinstance(current_cat, list):
+        current_cat = current_cat[0] if current_cat else None
+    if isinstance(view, list):
+        view = view[0] if view else None
 except Exception:
-    # Compat con versiones antiguas de Streamlit
-    IS_ADMIN = st.experimental_get_query_params().get("admin", [None])[0] == "1"
+    qp = st.experimental_get_query_params()
+    current_cat = (qp.get("cat", [None]) or [None])[0]
+    view = (qp.get("view", [None]) or [None])[0]
 
-if IS_ADMIN:
-    st.markdown(
-        '<div style="background:#FEF3C7;border:1px solid #F59E0B;'
-        'padding:8px 12px;border-radius:8px;margin-bottom:12px;'
-        'color:#92400E;font-weight:600;">🛠️ Modo administrador — '
-        'puedes eliminar productos con el botón 🗑️</div>',
-        unsafe_allow_html=True,
-    )
+products   = load_products()
+categories = load_categories()
+present = {p.get("categoria") for p in products if p.get("categoria")}
+for c in present:
+    if c not in categories:
+        categories.append(c)
 
-products = load_products()
+def _nav(view=None, cat=None):
+    """Cambia la vista SIN recargar la página (conserva el carrito)."""
+    try:
+        st.query_params.clear()
+        if view: st.query_params["view"] = view
+        if cat:  st.query_params["cat"]  = cat
+    except Exception:
+        params = {}
+        if view: params["view"] = view
+        if cat:  params["cat"]  = cat
+        st.experimental_set_query_params(**params)
+    st.rerun()
 
-if query:
-    q = query.lower().strip()
-    products = [p for p in products if q in str(p.get("nombre", "")).lower()]
+# ---- Topbar carrito ----
+top_l, top_r = st.columns([6, 2])
+with top_r:
+    n = cart_count()
+    label = f"🛒 Ver carrito ({n})" if n else "🛒 Carrito"
+    if st.button(label, use_container_width=True, key="btn_open_cart"):
+        _nav(view="cart", cat=current_cat)
 
-# ---- Grid de productos ----
-if not products:
-    st.markdown(
-        '<div class="am-empty">Aún no hay productos.<br>'
-        'Agrega productos desde la app de escritorio.</div>',
-        unsafe_allow_html=True,
-    )
-else:
-    total = len(products)
-    pages = max(1, (total + PRODUCTS_PER_PAGE - 1) // PRODUCTS_PER_PAGE)
-    page = st.number_input(
-        "Página", min_value=1, max_value=pages, value=1, step=1
-    ) if pages > 1 else 1
-    start = (page - 1) * PRODUCTS_PER_PAGE
-    chunk = products[start:start + PRODUCTS_PER_PAGE]
+# ----------------------------------------------------------
+# Diálogo (modal) para elegir cantidad
+# ----------------------------------------------------------
+def _open_add_dialog(prod):
+    st.session_state["_add_dialog_prod"] = prod
+    st.session_state["_add_dialog_qty"]  = 1
 
-    cols_per_row = 4
-    for i in range(0, len(chunk), cols_per_row):
-        row = st.columns(cols_per_row)
-        for j, (col, prod) in enumerate(zip(row, chunk[i:i + cols_per_row])):
-            img_path = prod.get("imagen", "")
-            img_src = ""
-            if img_path:
-                full = BASE_DIR / img_path
-                if full.exists():
-                    try:
-                        img_src = "data:image/png;base64," + base64.b64encode(
-                            full.read_bytes()
-                        ).decode()
-                    except Exception:
-                        img_src = ""
-            if not img_src:
-                img_src = (
-                    "data:image/svg+xml;base64," + base64.b64encode(
-                        b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
-                        b'<rect width="100" height="100" fill="#f1f5f9"/>'
-                        b'<text x="50" y="55" text-anchor="middle" fill="#94a3b8" '
-                        b'font-family="Arial" font-size="10">sin imagen</text></svg>'
-                    ).decode()
-                )
-            with col:
+def _render_add_dialog():
+    prod = st.session_state.get("_add_dialog_prod")
+    if not prod:
+        return
+    # Compat: @st.dialog (>=1.32) o experimental_dialog
+    dialog_dec = getattr(st, "dialog", None) or getattr(st, "experimental_dialog", None)
+
+    def _body():
+        img_src = img_to_data_uri(prod.get("imagen", ""))
+        name = prod.get("nombre", "")
+        st.markdown(
+            f'<img class="am-modal-img" src="{img_src}" alt="{name}"/>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(f'<div class="am-modal-name">{name}</div>',
+                    unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="am-modal-price">{format_price(prod.get("precio",0))}</div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown("**Cantidad**")
+        qty = st.number_input(
+            "Cantidad",
+            min_value=1, max_value=999, step=1,
+            value=int(st.session_state.get("_add_dialog_qty", 1)),
+            key="_add_dialog_qty_input",
+            label_visibility="collapsed",
+        )
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("Cancelar", use_container_width=True,
+                         key="_add_dialog_cancel"):
+                st.session_state.pop("_add_dialog_prod", None)
+                st.rerun()
+        with c2:
+            if st.button("Agregar al carrito", type="primary",
+                         use_container_width=True, key="_add_dialog_ok"):
+                cart_add(prod, int(qty))
+                st.session_state.pop("_add_dialog_prod", None)
+                st.rerun()
+
+    if dialog_dec:
+        @dialog_dec(f"Agregar «{prod.get('nombre','')}»")
+        def _dlg():
+            _body()
+        _dlg()
+    else:
+        # Fallback si la versión de Streamlit no tiene dialog
+        with st.container(border=True):
+            st.subheader(f"Agregar «{prod.get('nombre','')}»")
+            _body()
+
+# ================== VISTA: CARRITO ==================
+if view == "cart":
+    if st.button("← Seguir comprando", key="btn_back_shop"):
+        _nav(cat=current_cat)
+    st.markdown('<div class="am-section-title">🛒 Tu carrito</div>',
+                unsafe_allow_html=True)
+
+    cart = _cart()
+    if not cart:
+        st.markdown(
+            '<div class="am-empty">Tu carrito está vacío.<br>'
+            'Agrega productos desde los apartados.</div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        for name, it in list(cart.items()):
+            c1, c2, c3, c4, c5 = st.columns([1, 3, 2, 2, 1])
+            with c1:
                 st.markdown(
-                    f"""
-                    <div class="am-card">
-                        <img src="{img_src}" alt="{prod.get('nombre','')}"/>
-                        <div class="am-name">{prod.get('nombre','')}</div>
-                        <div class="am-price">{format_price(prod.get('precio',0))}</div>
-                        <a class="am-btn" href="#">Agregar al carrito</a>
-                    </div>
-                    """,
+                    f'<img src="{img_to_data_uri(it["imagen"])}" '
+                    f'style="width:64px;height:64px;object-fit:cover;'
+                    f'border-radius:10px;border:1px solid #E2E8F0;background:#fff;"/>',
                     unsafe_allow_html=True,
                 )
-                if IS_ADMIN:
-                    if st.button(
-                        "🗑️ Eliminar",
-                        key=f"del_{start + i + j}_{prod.get('nombre','')}",
-                        use_container_width=True,
-                    ):
-                        delete_product(prod)
+            with c2:
+                st.markdown(f"**{name}**")
+                st.caption(f"{format_price(it['precio'])} c/u")
+            with c3:
+                b1, bq, b2 = st.columns([1, 1, 1])
+                with b1:
+                    if st.button("−", key=f"cart_minus_{name}"):
+                        cart_set(name, it["qty"] - 1); st.rerun()
+                with bq:
+                    st.markdown(
+                        f'<div style="text-align:center;font-weight:700;'
+                        f'padding-top:6px;color:{COLOR_PRIMARY};">{it["qty"]}</div>',
+                        unsafe_allow_html=True,
+                    )
+                with b2:
+                    if st.button("+", key=f"cart_plus_{name}"):
+                        cart_set(name, it["qty"] + 1); st.rerun()
+            with c4:
+                st.markdown(
+                    f'<div style="padding-top:8px;font-weight:700;'
+                    f'color:#4ADE80;">{format_price(it["precio"]*it["qty"])}</div>',
+                    unsafe_allow_html=True,
+                )
+            with c5:
+                if st.button("🗑", key=f"cart_del_{name}"):
+                    cart_set(name, 0); st.rerun()
+
+        st.markdown("---")
+        tt1, tt2 = st.columns([3, 1])
+        with tt1:
+            st.markdown(
+                f'<div style="font-size:22px;font-weight:800;color:{COLOR_PRIMARY};">'
+                f'Total: <span style="color:#16A34A;">{format_price(cart_total())}'
+                f'</span></div>',
+                unsafe_allow_html=True,
+            )
+        with tt2:
+            if st.button("Vaciar carrito", use_container_width=True):
+                st.session_state.cart = {}
+                st.rerun()
+
+# ================== VISTA: LISTA DE APARTADOS ==================
+elif not current_cat:
+    st.markdown('<div class="am-section-title">Elige un apartado</div>',
+                unsafe_allow_html=True)
+    if not categories:
+        st.markdown(
+            '<div class="am-empty">Aún no hay apartados.<br>'
+            'Crea apartados desde la app de escritorio '
+            '(botón «Agregar nuevo apartado»).</div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        counts = {}
+        for p in products:
+            c = p.get("categoria", "")
+            counts[c] = counts.get(c, 0) + 1
+        for idx, cat in enumerate(categories):
+            n = counts.get(cat, 0)
+            if st.button(
+                f"📁   {cat}    ·    {n} producto(s)",
+                key=f"cat_btn_{idx}_{cat}",
+                use_container_width=True,
+            ):
+                _nav(cat=cat)
+
+# ================== VISTA: PRODUCTOS DE UN APARTADO ==================
+else:
+    if st.button("← Volver a apartados", key="btn_back_cats"):
+        _nav()
+    st.markdown(f'<div class="am-section-title">📁 {current_cat}</div>',
+                unsafe_allow_html=True)
+
+    col_s1, col_s2 = st.columns([3, 1])
+    with col_s1:
+        query = st.text_input(
+            "Buscar producto",
+            placeholder=f"Buscar en {current_cat}…",
+            label_visibility="collapsed",
+        )
+    with col_s2:
+        if st.button("🔄 Actualizar", use_container_width=True):
+            st.rerun()
+
+    cat_prods = [p for p in products if p.get("categoria") == current_cat]
+    if query:
+        q = query.lower().strip()
+        cat_prods = [p for p in cat_prods if q in str(p.get("nombre", "")).lower()]
+
+    if not cat_prods:
+        st.markdown(
+            '<div class="am-empty">No hay productos en este apartado todavía.<br>'
+            'Agrégalos desde la app de escritorio.</div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        total = len(cat_prods)
+        pages = max(1, (total + PRODUCTS_PER_PAGE - 1) // PRODUCTS_PER_PAGE)
+        page = st.number_input("Página", min_value=1, max_value=pages,
+                               value=1, step=1) if pages > 1 else 1
+        start = (page - 1) * PRODUCTS_PER_PAGE
+        chunk = cat_prods[start:start + PRODUCTS_PER_PAGE]
+
+        cols_per_row = 4
+        for i in range(0, len(chunk), cols_per_row):
+            row = st.columns(cols_per_row)
+            for j, (col, prod) in enumerate(zip(row, chunk[i:i + cols_per_row])):
+                name = prod.get("nombre", "")
+                key_id = f"{i}_{j}_{name}"
+                in_cart = _cart().get(name, {}).get("qty", 0)
+                img_src = img_to_data_uri(prod.get("imagen", ""))
+                with col:
+                    badge = (f'<span class="am-qty-badge">En carrito: {in_cart}</span>'
+                             if in_cart else "")
+                    st.markdown(
+                        f"""
+                        <div class="am-card">
+                            <img src="{img_src}" alt="{name}"/>
+                            <div class="am-name">{name}{badge}</div>
+                            <div class="am-price">{format_price(prod.get('precio',0))}</div>
+                        </div>
+                        <div class="am-card-gap"></div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                    if st.button("🛒  Agregar al carrito", key=f"add_{key_id}",
+                                 use_container_width=True, type="primary"):
+                        _open_add_dialog(prod)
                         st.rerun()
 
+        st.caption(f"Mostrando {len(chunk)} de {total} productos.")
 
-    st.caption(f"Mostrando {len(chunk)} de {total} productos.")
+# Render del diálogo si está activo
+if st.session_state.get("_add_dialog_prod"):
+    _render_add_dialog()
+
