@@ -990,20 +990,27 @@ st.markdown(
         .am-section [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] {{
           display: flex !important;
           flex-direction: row !important;
-          flex-wrap: wrap !important;
-          overflow: visible !important;
+          flex-wrap: nowrap !important;
+          overflow-x: auto !important;
+          overflow-y: hidden !important;
           gap: 8px !important;
-          row-gap: 10px !important;
+          scroll-snap-type: x mandatory !important;
+          -webkit-overflow-scrolling: touch !important;
+          padding-bottom: 4px !important;
         }}
+        .am-section > [data-testid="stHorizontalBlock"]::-webkit-scrollbar {{ display: none; }}
         .am-section > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"],
         .am-section [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{
-          flex: 0 0 calc(50% - 4px) !important;
-          min-width: 0 !important;
-          width: calc(50% - 4px) !important;
+          flex: 0 0 calc(25% - 6px) !important;
+          min-width: calc(25% - 6px) !important;
+          width: calc(25% - 6px) !important;
+          scroll-snap-align: start !important;
         }}
         /* Excepcion: la cabecera (titulo + Ver mas) mantiene fila normal */
         .am-section > [data-testid="stHorizontalBlock"]:has(.am-section-title-h) {{
           flex-wrap: wrap !important;
+          overflow: visible !important;
+          flex-direction: row !important;
         }}
         .am-section > [data-testid="stHorizontalBlock"]:has(.am-section-title-h) > [data-testid="stColumn"] {{
           flex: 1 1 auto !important;
@@ -1031,11 +1038,11 @@ st.markdown(
         }}
         .am-section-title-h {{ font-size: 17px; gap: 6px; }}
 
-        /* Mini card en preview horizontal (mas pequeno para que quepa) */
-        .am-mini {{ padding: 6px 6px 8px 6px; }}
-        .am-mini img {{ max-height: 90px; }}
-        .am-mini .name {{ font-size: 11.5px; min-height: 28px; margin: 4px 2px 2px 2px; }}
-        .am-mini .price {{ font-size: 11px; padding: 3px 8px; }}
+        /* Mini card en preview horizontal (4 por fila, estilo Madison) */
+        .am-mini {{ padding: 5px 4px 7px 4px; }}
+        .am-mini img {{ max-height: 74px; }}
+        .am-mini .name {{ font-size: 10.5px; min-height: 26px; margin: 4px 1px 2px 1px; line-height: 1.15; }}
+        .am-mini .price {{ font-size: 10.5px; padding: 2px 7px; }}
 
         /* ================= VISTA "VER MAS" (2 POR FILA, IGUAL QUE EL HOME) ================= */
         .am-plist [data-testid="stHorizontalBlock"] {{
@@ -1104,8 +1111,11 @@ st.markdown(
         .am-cat-circle .label {{ font-size: 11.5px; max-width: 72px; }}
         .am-section-title-h {{ font-size: 16px; }}
         .am-section > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{
-          flex: 0 0 calc(50% - 4px) !important; min-width: 0 !important; width: calc(50% - 4px) !important;
+          flex: 0 0 calc(25% - 6px) !important; min-width: calc(25% - 6px) !important; width: calc(25% - 6px) !important;
         }}
+        .am-mini img {{ max-height: 66px; }}
+        .am-mini .name {{ font-size: 10px; min-height: 24px; }}
+        .am-mini .price {{ font-size: 10px; padding: 2px 6px; }}
         .am-plist .am-card {{ grid-template-columns: 68px 1fr auto !important; }}
         .am-plist .am-card img {{ width: 68px !important; height: 68px !important; max-height: 68px !important; }}
       }}
