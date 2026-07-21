@@ -851,15 +851,137 @@ st.markdown(
         font-size:20px; margin-bottom: 14px;
       }}
 
-      /* Responsive */
+      /* ================= RESPONSIVE (TELEFONO / TABLET) ================= */
+      /* Tablet */
+      @media (max-width: 980px) {{
+        .am-wrap {{ padding: 0 16px; }}
+        .am-section {{ padding: 18px 16px 16px 16px; }}
+        .am-section-title-h {{ font-size: 20px; }}
+      }}
+
+      /* Telefono */
       @media (max-width: 780px) {{
-        .am-brand-name {{ font-size: 24px; }}
+        /* --- Topbar: mas aire, todo centrado --- */
+        .st-key-am_topbar_v2 {{
+          padding: 0 12px 16px 12px !important;
+          margin-bottom: 12px !important;
+        }}
+        .am-delivery-banner {{
+          font-size: 12.5px; padding: 8px 10px 9px 10px;
+          margin: 0 -12px 12px -12px;
+          line-height: 1.35;
+        }}
+        /* Los "columns" de Streamlit se apilan; forzamos centrado limpio */
+        .st-key-am_topbar_v2 [data-testid="stHorizontalBlock"] {{
+          gap: 10px !important;
+          flex-wrap: wrap !important;
+        }}
+        .st-key-am_topbar_v2 [data-testid="stHorizontalBlock"] > [data-testid="column"],
+        .st-key-am_topbar_v2 [data-testid="stColumn"] {{
+          width: 100% !important;
+          flex: 0 0 100% !important;
+          min-width: 100% !important;
+          display: flex; justify-content: center;
+        }}
+        /* Menu ocupa toda la fila */
+        .st-key-btn_menu button {{
+          width: 100% !important;
+          min-height: 46px !important;
+          font-size: 15px !important;
+        }}
+        /* Marca / logo centrada */
+        .am-brand {{
+          justify-content: center;
+          flex-direction: column;
+          gap: 6px;
+          text-align: center;
+          width: 100%;
+        }}
+        .am-brand-name {{ font-size: 26px; }}
         .am-brand-market {{ font-size: 13px; letter-spacing: 2px; }}
-        .am-brand-logo {{ height: 42px; }}
-        .am-tb-item {{ padding: 8px 12px; font-size: 13px; }}
-        .am-cat-circle .bubble {{ width: 74px; height: 74px; font-size: 34px; }}
-        .am-cat-circle {{ min-width: 88px; }}
-        .am-section {{ padding: 16px 14px; }}
+        .am-brand-logo {{ height: 60px !important; margin-left: 0 !important; }}
+
+        /* Buscador ancho completo y boton de lupa debajo, ancho completo */
+        div[data-testid="stTextInput"] > div > div > input {{
+          height: 48px !important;
+          font-size: 16px !important; /* evita zoom en iOS */
+          border-radius: 10px !important;
+        }}
+        .st-key-btn_search button {{
+          width: 100% !important;
+          border-radius: 10px !important;
+          min-height: 46px !important;
+        }}
+
+        /* "Mi cuenta" ocupa el ancho completo */
+        .am-tb-item {{
+          width: 100%;
+          justify-content: center;
+          padding: 12px 14px;
+          font-size: 14px;
+          border-radius: 14px;
+        }}
+
+        /* Iconos sociales mas grandes y centrados */
+        .st-key-am_topbar_v2 [data-testid="stColumn"]:has(a[aria-label="Facebook"]),
+        .st-key-am_topbar_v2 [data-testid="stColumn"]:has(a[aria-label="Instagram"]),
+        .st-key-am_topbar_v2 [data-testid="stColumn"]:has(a[aria-label="TikTok"]) {{
+          justify-content: center;
+        }}
+        a[aria-label="Facebook"], a[aria-label="Instagram"], a[aria-label="TikTok"] {{
+          width: 44px !important; height: 44px !important;
+          margin: 4px 6px !important;
+        }}
+
+        /* Carrito grande y centrado */
+        .am-cart-btn {{
+          width: 58px; height: 58px; border-radius: 16px;
+          font-size: 28px;
+        }}
+
+        /* --- Categorias (circulos) --- */
+        .am-cats-wrap {{ padding: 16px 0 18px 0; margin-bottom: 16px; }}
+        .am-cats-scroll {{ gap: 14px; padding: 0 14px; }}
+        .am-cat-circle {{ min-width: 84px; gap: 8px; }}
+        .am-cat-circle .bubble {{ width: 78px; height: 78px; font-size: 34px; }}
+        .am-cat-circle .label {{ font-size: 13px; max-width: 100px; }}
+
+        /* --- Secciones de apartado --- */
+        .am-section {{
+          padding: 16px 14px 14px 14px;
+          margin-bottom: 18px;
+          border-radius: 16px;
+        }}
+        .am-section-head {{
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 10px;
+          margin-bottom: 14px;
+        }}
+        .am-section-title-h {{ font-size: 19px; gap: 8px; }}
+
+        /* Tarjetas y mini tarjetas */
+        .am-card {{ padding: 12px 10px 10px 10px; border-radius: 14px; }}
+        .am-card img {{ max-height: 140px; }}
+        .am-name {{ font-size: 13px; min-height: 32px; margin: 8px 2px 4px 2px; }}
+        .am-price {{ font-size: 14px; padding: 4px 12px; }}
+        .am-mini {{ padding: 8px 6px 10px 6px; }}
+        .am-mini img {{ max-height: 110px; }}
+
+        /* Botones globales con mas altura para dedos */
+        div[data-testid="stButton"] > button {{
+          min-height: 46px !important;
+          font-size: 14px !important;
+        }}
+      }}
+
+      /* Telefonos angostos */
+      @media (max-width: 420px) {{
+        .am-wrap {{ padding: 0 12px; }}
+        .am-brand-name {{ font-size: 22px; }}
+        .am-cat-circle .bubble {{ width: 68px; height: 68px; font-size: 30px; }}
+        .am-cat-circle {{ min-width: 76px; }}
+        .am-section-title-h {{ font-size: 17px; }}
       }}
     </style>
     """,
