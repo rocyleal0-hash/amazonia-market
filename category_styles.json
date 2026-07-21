@@ -1,0 +1,46 @@
+{
+  "Alimentos": {
+    "icon": "🏷️",
+    "circle_color": "#0000ff",
+    "circle_size": 96,
+    "label_color": "#0F172A",
+    "label_size": 14,
+    "title_color": "#0000ff",
+    "title_size": 22,
+    "more_bg": "#0000ff",
+    "more_fg": "#ffffff"
+  },
+  "Juguetes": {
+    "icon": "🧸",
+    "circle_color": "#0000ff",
+    "circle_size": 96,
+    "label_color": "#0F172A",
+    "label_size": 14,
+    "title_color": "#0000ff",
+    "title_size": 22,
+    "more_bg": "#0000ff",
+    "more_fg": "#FFFFFF"
+  },
+  "Bebidas": {
+    "icon": "🥤",
+    "circle_color": "#0000ff",
+    "circle_size": 96,
+    "label_color": "#000000",
+    "label_size": 14,
+    "title_color": "#0000ff",
+    "title_size": 22,
+    "more_bg": "#0000ff",
+    "more_fg": "#FFFFFF"
+  },
+  "Farmacia": {
+    "icon": "💊",
+    "circle_color": "#0000ff",
+    "circle_size": 96,
+    "label_color": "#0F172A",
+    "label_size": 14,
+    "title_color": "#0000ff",
+    "title_size": 22,
+    "more_bg": "#0000ff",
+    "more_fg": "#FFFFFF"
+  }
+}

@@ -4,27 +4,27 @@
     "nombre": "Mantequilla Mavesa",
     "precio": 2.2,
     "imagen": "product_images/9ac83dd9939945c8943b7721fdbe9892.jpeg",
-    "categoria": "General"
+    "categoria": "Alimentos"
   },
   {
     "id": "435b8c9f11c14ea7841a270fc0febc2a",
     "nombre": "Aceite Vatel",
     "precio": 3.0,
     "imagen": "product_images/32b1c21a7c53449b9d9116b18ebfe0da.webp",
-    "categoria": "General"
+    "categoria": "Alimentos"
   },
   {
     "id": "0f60c57069904fa996730b48752e0e11",
     "nombre": "Harina Pan",
     "precio": 1.5,
     "imagen": "product_images/d5002dc242984610be8fa63750461bc4.webp",
-    "categoria": "General"
+    "categoria": "Alimentos"
   },
   {
     "id": "1f057c716e4b431496c271ebf6405cdb",
     "nombre": "Mayonesa Mavesa",
     "precio": 1.0,
     "imagen": "product_images/5afce7bb1ee7490da8f083288c292717.png",
-    "categoria": "General"
+    "categoria": "Alimentos"
   }
 ]

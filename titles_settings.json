@@ -1,0 +1,16 @@
+[
+  {
+    "text": "Amazonia",
+    "font": "Pacifico",
+    "size": 30,
+    "weight": "400",
+    "color": "#FFFFFF"
+  },
+  {
+    "text": "MARKET",
+    "font": "Poppins",
+    "size": 16,
+    "weight": "900",
+    "color": "#F5B301"
+  }
+]
