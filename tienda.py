@@ -911,7 +911,7 @@ st.markdown(
         }}
         .st-key-btn_menu button > * {{ font-size: 0 !important; color: transparent !important; }}
         .st-key-btn_menu button::before {{
-          content: "\2630"; color: #fff; font-size: 22px; line-height: 1;
+          content: "\\2630"; color: #fff; font-size: 24px; line-height: 1; font-weight: 900;
           position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
         }}
 
@@ -945,7 +945,7 @@ st.markdown(
           padding: 0 !important;
         }}
 
-        /* Iconos de cuenta y carrito: mas grandes y alineados con menu */
+        /* Iconos de cuenta y carrito: silueta blanca via SVG, mismo tamano que menu */
         .am-tb-item {{
           width: 46px !important; height: 46px !important;
           display: flex !important; justify-content: center !important; align-items: center !important;
@@ -954,8 +954,12 @@ st.markdown(
         }}
         .am-tb-item * {{ font-size: 0 !important; color: transparent !important; display: none !important; }}
         .am-tb-item::before {{
-          content: "\1F464"; font-size: 24px; line-height: 1; color: initial;
+          content: "";
           position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+          width: 26px; height: 26px;
+          background-color: #fff;
+          -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-4 0-8 2-8 6v1h16v-1c0-4-4-6-8-6z'/></svg>") no-repeat center / contain;
+                  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-4 0-8 2-8 6v1h16v-1c0-4-4-6-8-6z'/></svg>") no-repeat center / contain;
         }}
 
         .am-cart-btn {{
@@ -968,8 +972,12 @@ st.markdown(
         }}
         .am-cart-btn * {{ font-size: 0 !important; color: transparent !important; }}
         .am-cart-btn::before {{
-          content: "\1F6D2"; font-size: 22px; line-height: 1; color: initial;
+          content: "";
           position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+          width: 26px; height: 26px;
+          background-color: #fff;
+          -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M7 4h-2l-1 2v1h2l3 8-1 2a2 2 0 0 0 2 3h11v-2h-11l1-2h8l3-6h-14l-1-3zm2 15a2 2 0 1 0 2 2 2 2 0 0 0-2-2zm10 0a2 2 0 1 0 2 2 2 2 0 0 0-2-2z'/></svg>") no-repeat center / contain;
+                  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M7 4h-2l-1 2v1h2l3 8-1 2a2 2 0 0 0 2 3h11v-2h-11l1-2h8l3-6h-14l-1-3zm2 15a2 2 0 1 0 2 2 2 2 0 0 0-2-2zm10 0a2 2 0 1 0 2 2 2 2 0 0 0-2-2z'/></svg>") no-repeat center / contain;
         }}
         .am-cart-badge {{
           min-width: 16px; height: 16px; font-size: 10px;
@@ -977,31 +985,25 @@ st.markdown(
         }}
 
         /* ================= HOME: PREVIEW DE APARTADOS ================= */
-        /* Productos preview: scroll HORIZONTAL, uno al lado del otro */
+        /* Productos preview: 2 por fila, uno al lado del otro (como los circulos) */
         .am-section > [data-testid="stHorizontalBlock"],
         .am-section [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] {{
           display: flex !important;
           flex-direction: row !important;
-          flex-wrap: nowrap !important;
-          overflow-x: auto !important;
-          overflow-y: hidden !important;
-          scroll-snap-type: x mandatory;
-          -webkit-overflow-scrolling: touch;
-          gap: 10px !important;
-          padding-bottom: 6px;
+          flex-wrap: wrap !important;
+          overflow: visible !important;
+          gap: 8px !important;
+          row-gap: 10px !important;
         }}
         .am-section > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"],
         .am-section [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{
-          flex: 0 0 44% !important;
-          min-width: 44% !important;
-          width: 44% !important;
-          scroll-snap-align: start;
+          flex: 0 0 calc(50% - 4px) !important;
+          min-width: 0 !important;
+          width: calc(50% - 4px) !important;
         }}
         /* Excepcion: la cabecera (titulo + Ver mas) mantiene fila normal */
         .am-section > [data-testid="stHorizontalBlock"]:has(.am-section-title-h) {{
           flex-wrap: wrap !important;
-          overflow: visible !important;
-          scroll-snap-type: none !important;
         }}
         .am-section > [data-testid="stHorizontalBlock"]:has(.am-section-title-h) > [data-testid="stColumn"] {{
           flex: 1 1 auto !important;
@@ -1035,61 +1037,55 @@ st.markdown(
         .am-mini .name {{ font-size: 11.5px; min-height: 28px; margin: 4px 2px 2px 2px; }}
         .am-mini .price {{ font-size: 11px; padding: 3px 8px; }}
 
-        /* ================= VISTA "VER MAS" (LISTA HORIZONTAL) ================= */
-        /* En la pagina de un apartado o de busqueda: imagen izq, nombre centro, boton derecha */
+        /* ================= VISTA "VER MAS" (2 POR FILA, IGUAL QUE EL HOME) ================= */
         .am-plist [data-testid="stHorizontalBlock"] {{
           display: flex !important;
-          flex-direction: column !important;
-          gap: 10px !important;
+          flex-direction: row !important;
+          flex-wrap: wrap !important;
+          gap: 8px !important;
+          row-gap: 10px !important;
         }}
         .am-plist [data-testid="stColumn"] {{
-          flex: 1 1 100% !important;
-          width: 100% !important;
-          min-width: 100% !important;
+          flex: 0 0 calc(50% - 4px) !important;
+          width: calc(50% - 4px) !important;
+          min-width: 0 !important;
           display: block !important;
         }}
-        /* Cada tarjeta se convierte en fila: imagen | nombre+precio | boton */
+        /* Tarjeta vertical compacta */
         .am-plist .am-card {{
-          display: grid !important;
-          grid-template-columns: 78px 1fr auto !important;
-          grid-template-areas: "img body price" !important;
-          gap: 10px !important;
-          text-align: left !important;
-          padding: 10px !important;
-          align-items: center !important;
+          display: block !important;
+          text-align: center !important;
+          padding: 8px 6px 10px 6px !important;
           margin-bottom: 4px !important;
         }}
         .am-plist .am-card img {{
-          grid-area: img !important;
-          width: 78px !important; height: 78px !important;
-          max-height: 78px !important;
-          margin: 0 !important;
+          width: 100% !important;
+          max-height: 100px !important;
+          height: auto !important;
+          margin: 0 auto 6px auto !important;
+          object-fit: contain !important;
         }}
         .am-plist .am-card .am-name {{
-          grid-area: body !important;
-          margin: 0 !important;
-          min-height: 0 !important;
-          font-size: 13px !important;
+          margin: 4px 2px 4px 2px !important;
+          min-height: 32px !important;
+          font-size: 12px !important;
           font-weight: 700 !important;
           line-height: 1.25 !important;
-          text-align: left !important;
-          align-self: center !important;
+          text-align: center !important;
         }}
         .am-plist .am-card .am-price {{
-          grid-area: price !important;
-          font-size: 13px !important;
-          padding: 4px 10px !important;
-          margin: 0 !important;
-          justify-self: end !important;
+          font-size: 12px !important;
+          padding: 3px 8px !important;
+          margin: 2px auto !important;
+          display: inline-block !important;
         }}
         .am-plist .am-card-gap {{ display: none !important; }}
-        /* Boton "Agregar al carrito": queda debajo de la tarjeta pero compacto y de ancho completo */
         .am-plist div[data-testid="stButton"] > button {{
-          min-height: 38px !important;
-          font-size: 13px !important;
-          padding: 6px 10px !important;
-          margin-top: -2px !important;
-          margin-bottom: 10px !important;
+          min-height: 36px !important;
+          font-size: 12px !important;
+          padding: 6px 8px !important;
+          margin-top: 2px !important;
+          margin-bottom: 8px !important;
         }}
 
         div[data-testid="stButton"] > button {{
@@ -1108,7 +1104,7 @@ st.markdown(
         .am-cat-circle .label {{ font-size: 11.5px; max-width: 72px; }}
         .am-section-title-h {{ font-size: 16px; }}
         .am-section > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{
-          flex: 0 0 60% !important; min-width: 60% !important; width: 60% !important;
+          flex: 0 0 calc(50% - 4px) !important; min-width: 0 !important; width: calc(50% - 4px) !important;
         }}
         .am-plist .am-card {{ grid-template-columns: 68px 1fr auto !important; }}
         .am-plist .am-card img {{ width: 68px !important; height: 68px !important; max-height: 68px !important; }}
