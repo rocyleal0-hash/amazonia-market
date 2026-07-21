@@ -859,61 +859,91 @@ st.markdown(
         .am-section-title-h {{ font-size: 20px; }}
       }}
 
-      /* Telefono */
+      /* Telefono - Layout reorganizado tipo Madison mobile */
       @media (max-width: 780px) {{
-        /* --- Topbar: mas aire, todo centrado --- */
+        /* --- Topbar: mas aire, ancho completo --- */
         .st-key-am_topbar_v2 {{
-          padding: 0 12px 16px 12px !important;
+          padding: 0 14px 18px 14px !important;
           margin-bottom: 12px !important;
         }}
         .am-delivery-banner {{
-          font-size: 12.5px; padding: 8px 10px 9px 10px;
-          margin: 0 -12px 12px -12px;
+          font-size: 12.5px; padding: 9px 10px 10px 10px;
+          margin: 0 -14px 14px -14px;
           line-height: 1.35;
         }}
-        /* Los "columns" de Streamlit se apilan; forzamos centrado limpio */
+
+        /* El row horizontal se convierte en un grid de 2 columnas (input | boton)
+           que se envuelve. Usamos "order" en cada columna para reordenar visualmente:
+           Fila 1: Menu (ancho completo)
+           Fila 2: Logo (ancho completo, grande)
+           Fila 3: Input busqueda + boton lupa (lado a lado)
+           Fila 4: Mi cuenta (ancho completo)
+           Fila 5: Iconos sociales (una sola fila compacta)
+           Fila 6: Carrito (centrado)
+        */
         .st-key-am_topbar_v2 [data-testid="stHorizontalBlock"] {{
-          gap: 10px !important;
+          gap: 12px !important;
           flex-wrap: wrap !important;
+          align-items: stretch !important;
         }}
         .st-key-am_topbar_v2 [data-testid="stHorizontalBlock"] > [data-testid="column"],
         .st-key-am_topbar_v2 [data-testid="stColumn"] {{
-          width: 100% !important;
           flex: 0 0 100% !important;
-          min-width: 100% !important;
-          display: flex; justify-content: center;
+          width: 100% !important;
+          min-width: 0 !important;
+          display: flex; justify-content: center; align-items: center;
         }}
+        /* Reordenamiento visual */
+        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(1) {{ order: 1; }}  /* Menu */
+        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(2) {{ order: 2; }}  /* Logo */
+        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(3) {{ order: 3; flex: 1 1 68% !important; width: auto !important; min-width: 0 !important; }} /* Input */
+        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(4) {{ order: 4; flex: 0 0 64px !important; width: 64px !important; min-width: 64px !important; }} /* Btn lupa */
+        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(5) {{ order: 5; }}  /* Mi cuenta */
+        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(6) {{ order: 6; }}  /* Social */
+        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(7) {{ order: 7; }}  /* Carrito */
+
         /* Menu ocupa toda la fila */
         .st-key-btn_menu button {{
           width: 100% !important;
-          min-height: 46px !important;
-          font-size: 15px !important;
+          min-height: 50px !important;
+          font-size: 16px !important;
+          font-weight: 700 !important;
+          border-radius: 12px !important;
         }}
-        /* Marca / logo centrada */
+
+        /* Marca / logo centrada y GRANDE */
         .am-brand {{
           justify-content: center;
           flex-direction: column;
-          gap: 6px;
+          gap: 4px;
           text-align: center;
           width: 100%;
+          padding: 6px 0 4px 0;
         }}
-        .am-brand-name {{ font-size: 26px; }}
-        .am-brand-market {{ font-size: 13px; letter-spacing: 2px; }}
-        .am-brand-logo {{ height: 60px !important; margin-left: 0 !important; }}
+        .am-brand-name {{ font-size: 34px; }}
+        .am-brand-market {{ font-size: 15px; letter-spacing: 3px; }}
+        .am-brand-logo {{
+          height: 96px !important;
+          margin-left: 0 !important;
+          margin-bottom: 2px;
+        }}
 
-        /* Buscador ancho completo y boton de lupa debajo, ancho completo */
+        /* Buscador: input a la izquierda, boton amarillo a la derecha (misma fila) */
         div[data-testid="stTextInput"] > div > div > input {{
-          height: 48px !important;
+          height: 50px !important;
           font-size: 16px !important; /* evita zoom en iOS */
-          border-radius: 10px !important;
+          border-radius: 12px !important;
+          padding: 0 14px !important;
         }}
         .st-key-btn_search button {{
           width: 100% !important;
-          border-radius: 10px !important;
-          min-height: 46px !important;
+          height: 50px !important;
+          min-height: 50px !important;
+          border-radius: 12px !important;
+          font-size: 20px !important;
         }}
 
-        /* "Mi cuenta" ocupa el ancho completo */
+        /* "Mi cuenta" ancho completo, estilo pill */
         .am-tb-item {{
           width: 100%;
           justify-content: center;
@@ -922,18 +952,16 @@ st.markdown(
           border-radius: 14px;
         }}
 
-        /* Iconos sociales mas grandes y centrados */
-        .st-key-am_topbar_v2 [data-testid="stColumn"]:has(a[aria-label="Facebook"]),
-        .st-key-am_topbar_v2 [data-testid="stColumn"]:has(a[aria-label="Instagram"]),
-        .st-key-am_topbar_v2 [data-testid="stColumn"]:has(a[aria-label="TikTok"]) {{
-          justify-content: center;
+        /* Iconos sociales en UNA SOLA fila, compactos y centrados */
+        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(6) > div {{
+          width: 100%;
         }}
         a[aria-label="Facebook"], a[aria-label="Instagram"], a[aria-label="TikTok"] {{
-          width: 44px !important; height: 44px !important;
-          margin: 4px 6px !important;
+          width: 42px !important; height: 42px !important;
+          margin: 2px 6px !important;
         }}
 
-        /* Carrito grande y centrado */
+        /* Carrito centrado (aparece debajo de las redes) */
         .am-cart-btn {{
           width: 58px; height: 58px; border-radius: 16px;
           font-size: 28px;
@@ -978,7 +1006,8 @@ st.markdown(
       /* Telefonos angostos */
       @media (max-width: 420px) {{
         .am-wrap {{ padding: 0 12px; }}
-        .am-brand-name {{ font-size: 22px; }}
+        .am-brand-name {{ font-size: 28px; }}
+        .am-brand-logo {{ height: 82px !important; }}
         .am-cat-circle .bubble {{ width: 68px; height: 68px; font-size: 30px; }}
         .am-cat-circle {{ min-width: 76px; }}
         .am-section-title-h {{ font-size: 17px; }}
