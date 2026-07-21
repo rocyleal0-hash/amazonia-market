@@ -887,34 +887,42 @@ st.markdown(
           display: flex; justify-content: center; align-items: center;
         }}
         /* Fila 1: 4 iconos compactos */
-        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(1) {{ order: 1; flex: 0 0 44px !important; width: 44px !important; }}   /* Menu */
+        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(1) {{ order: 1; flex: 0 0 42px !important; width: 42px !important; }}   /* Menu */
         .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(2) {{ order: 2; flex: 1 1 auto !important; width: auto !important; }} /* Logo */
-        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(5) {{ order: 3; flex: 0 0 44px !important; width: 44px !important; }}  /* Mi cuenta */
-        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(7) {{ order: 4; flex: 0 0 52px !important; width: 52px !important; }}  /* Carrito */
+        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(5) {{ order: 3; flex: 0 0 42px !important; width: 42px !important; }}  /* Mi cuenta */
+        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(7) {{ order: 4; flex: 0 0 42px !important; width: 42px !important; }}  /* Carrito */
         /* Fila 2: buscador */
         .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(3) {{ order: 5; flex: 1 1 70% !important; width: auto !important; }}  /* Input */
-        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(4) {{ order: 6; flex: 0 0 60px !important; width: 60px !important; }} /* Btn lupa */
+        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(4) {{ order: 6; flex: 0 0 56px !important; width: 56px !important; }} /* Btn lupa */
         /* Redes sociales ocultas en mobile */
         .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(6) {{ display: none !important; }}
 
-        /* Menu: solo icono, compacto */
+        /* Menu: solo icono ☰ (oculta la palabra "Menú") */
         .st-key-btn_menu button {{
-          width: 44px !important;
-          min-width: 44px !important;
-          height: 44px !important;
-          min-height: 44px !important;
+          width: 42px !important;
+          min-width: 42px !important;
+          height: 42px !important;
+          min-height: 42px !important;
           padding: 0 !important;
-          font-size: 20px !important;
           border-radius: 10px !important;
+          font-size: 0 !important;
+          line-height: 0 !important;
+          color: transparent !important;
+          position: relative;
           overflow: hidden;
-          white-space: nowrap;
+        }}
+        .st-key-btn_menu button > * {{
+          font-size: 0 !important;
           color: transparent !important;
         }}
         .st-key-btn_menu button::before {{
-          content: "\2630";
+          content: "☰";
           color: #fff;
-          font-size: 20px;
+          font-size: 22px;
+          line-height: 1;
           position: absolute;
+          top: 50%; left: 50%;
+          transform: translate(-50%, -50%);
         }}
 
         /* Marca / logo: centrada, tamano medio (no gigante) */
@@ -935,45 +943,107 @@ st.markdown(
 
         /* Buscador: input + boton lupa en la MISMA fila */
         div[data-testid="stTextInput"] > div > div > input {{
-          height: 44px !important;
+          height: 42px !important;
           font-size: 16px !important; /* evita zoom en iOS */
           border-radius: 10px !important;
           padding: 0 12px !important;
         }}
         .st-key-btn_search button {{
           width: 100% !important;
-          height: 44px !important;
-          min-height: 44px !important;
+          height: 42px !important;
+          min-height: 42px !important;
           border-radius: 10px !important;
           font-size: 18px !important;
           padding: 0 !important;
         }}
 
-        /* "Mi cuenta": solo icono */
+        /* "Mi cuenta": solo icono de persona (oculta cualquier texto) */
         .am-tb-item {{
-          width: 44px !important;
-          height: 44px !important;
-          justify-content: center;
-          align-items: center;
+          width: 42px !important;
+          height: 42px !important;
+          display: flex !important;
+          justify-content: center !important;
+          align-items: center !important;
           padding: 0 !important;
           font-size: 0 !important;
+          color: transparent !important;
           border-radius: 10px;
+          position: relative;
+          overflow: hidden;
+        }}
+        .am-tb-item * {{
+          font-size: 0 !important;
+          color: transparent !important;
+          display: none !important;
         }}
         .am-tb-item::before {{
-          content: "\1F464";
+          content: "👤";
           font-size: 20px;
           line-height: 1;
+          color: initial;
+          position: absolute;
+          top: 50%; left: 50%;
+          transform: translate(-50%, -50%);
         }}
-        .am-tb-item * {{ display: none !important; }}
 
-        /* Carrito compacto */
+        /* Carrito compacto (icono más pequeño) */
         .am-cart-btn {{
-          width: 48px !important; height: 44px !important;
+          width: 42px !important;
+          min-width: 42px !important;
+          height: 42px !important;
+          padding: 0 !important;
           border-radius: 10px !important;
-          font-size: 22px !important;
+          font-size: 0 !important;
+          color: transparent !important;
+          position: relative;
+          overflow: visible;
+        }}
+        .am-cart-btn * {{
+          font-size: 0 !important;
+          color: transparent !important;
+        }}
+        .am-cart-btn::before {{
+          content: "🛒";
+          font-size: 20px;
+          line-height: 1;
+          color: initial;
+          position: absolute;
+          top: 50%; left: 50%;
+          transform: translate(-50%, -50%);
         }}
         .am-cart-badge {{
-          min-width: 18px; height: 18px; font-size: 11px;
+          min-width: 16px; height: 16px; font-size: 10px;
+          top: -4px !important; right: -4px !important;
+        }}
+
+        /* --- Productos en scroll HORIZONTAL (como en escritorio) --- */
+        .am-section [data-testid="stHorizontalBlock"] {{
+          flex-wrap: nowrap !important;
+          overflow-x: auto !important;
+          overflow-y: hidden;
+          scroll-snap-type: x mandatory;
+          -webkit-overflow-scrolling: touch;
+          gap: 10px !important;
+          padding-bottom: 6px;
+        }}
+        .am-section [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{
+          flex: 0 0 46% !important;
+          min-width: 46% !important;
+          width: 46% !important;
+          scroll-snap-align: start;
+        }}
+        /* Encabezado de sección: mantiene layout normal (título + Ver más) */
+        .am-section > [data-testid="stHorizontalBlock"]:first-of-type,
+        .am-section [data-testid="stHorizontalBlock"]:has(.am-section-title-h) {{
+          flex-wrap: wrap !important;
+          overflow: visible !important;
+          scroll-snap-type: none;
+        }}
+        .am-section > [data-testid="stHorizontalBlock"]:first-of-type > [data-testid="stColumn"],
+        .am-section [data-testid="stHorizontalBlock"]:has(.am-section-title-h) > [data-testid="stColumn"] {{
+          flex: 1 1 auto !important;
+          min-width: 0 !important;
+          width: auto !important;
         }}
 
         /* --- Categorias (circulos) mas pequenos, tipo Madison --- */
