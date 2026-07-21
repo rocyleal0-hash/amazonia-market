@@ -863,197 +863,160 @@ st.markdown(
       @media (max-width: 780px) {{
         /* --- Topbar compacta --- */
         .st-key-am_topbar_v2 {{
-          padding: 0 10px 12px 10px !important;
+          padding: 6px 10px 14px 10px !important;
           margin-bottom: 10px !important;
         }}
         .am-delivery-banner {{
           font-size: 12px; padding: 8px 10px;
-          margin: 0 -10px 10px -10px;
+          margin: 0 -10px 12px -10px;
           line-height: 1.35;
         }}
 
-        /* El row horizontal se convierte en grid con wrap.
-           Fila 1 (compacta): Menu | Logo | Mi cuenta | Carrito
-           Fila 2: Input busqueda + boton lupa
-           Redes sociales: ocultas en mobile (para que quepa todo como Madison)
-        */
-        .st-key-am_topbar_v2 [data-testid="stHorizontalBlock"] {{
-          gap: 8px !important;
+        /* Forzamos SIEMPRE fila horizontal (Streamlit apila columnas en mobile) */
+        .st-key-am_topbar_v2 [data-testid="stHorizontalBlock"],
+        .st-key-am_topbar_v2 [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] {{
+          display: flex !important;
+          flex-direction: row !important;
           flex-wrap: wrap !important;
+          gap: 8px !important;
           align-items: center !important;
+          row-gap: 12px !important;
         }}
         .st-key-am_topbar_v2 [data-testid="stColumn"] {{
           min-width: 0 !important;
-          display: flex; justify-content: center; align-items: center;
+          display: flex !important;
+          justify-content: center !important;
+          align-items: center !important;
+          flex-direction: row !important;
         }}
-        /* Fila 1: 4 iconos compactos */
-        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(1) {{ order: 1; flex: 0 0 42px !important; width: 42px !important; }}   /* Menu */
-        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(2) {{ order: 2; flex: 1 1 auto !important; width: auto !important; }} /* Logo */
-        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(5) {{ order: 3; flex: 0 0 42px !important; width: 42px !important; }}  /* Mi cuenta */
-        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(7) {{ order: 4; flex: 0 0 42px !important; width: 42px !important; }}  /* Carrito */
-        /* Fila 2: buscador */
-        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(3) {{ order: 5; flex: 1 1 70% !important; width: auto !important; }}  /* Input */
-        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(4) {{ order: 6; flex: 0 0 56px !important; width: 56px !important; }} /* Btn lupa */
+        /* Fila 1: Menu | Logo (centro) | Cuenta | Carrito - todos en la MISMA fila */
+        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(1) {{ order: 1; flex: 0 0 46px !important; width: 46px !important; }}
+        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(2) {{ order: 2; flex: 1 1 0 !important; width: auto !important; min-width: 0 !important; }}
+        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(5) {{ order: 3; flex: 0 0 46px !important; width: 46px !important; }}
+        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(7) {{ order: 4; flex: 0 0 46px !important; width: 46px !important; }}
+        /* Fila 2: input + lupa (100% de ancho) */
+        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(3) {{ order: 5; flex: 1 1 calc(100% - 60px) !important; width: auto !important; margin-top: 6px !important; }}
+        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(4) {{ order: 6; flex: 0 0 52px !important; width: 52px !important; margin-top: 6px !important; }}
         /* Redes sociales ocultas en mobile */
         .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(6) {{ display: none !important; }}
 
-        /* Menu: solo icono ☰ (oculta la palabra "Menú") */
+        /* Menu: solo icono */
         .st-key-btn_menu button {{
-          width: 42px !important;
-          min-width: 42px !important;
-          height: 42px !important;
-          min-height: 42px !important;
-          padding: 0 !important;
-          border-radius: 10px !important;
-          font-size: 0 !important;
-          line-height: 0 !important;
+          width: 46px !important; min-width: 46px !important;
+          height: 46px !important; min-height: 46px !important;
+          padding: 0 !important; border-radius: 12px !important;
+          font-size: 0 !important; line-height: 0 !important;
           color: transparent !important;
-          position: relative;
-          overflow: hidden;
+          position: relative; overflow: hidden;
         }}
-        .st-key-btn_menu button > * {{
-          font-size: 0 !important;
-          color: transparent !important;
-        }}
+        .st-key-btn_menu button > * {{ font-size: 0 !important; color: transparent !important; }}
         .st-key-btn_menu button::before {{
-          content: "☰";
-          color: #fff;
-          font-size: 22px;
-          line-height: 1;
-          position: absolute;
-          top: 50%; left: 50%;
-          transform: translate(-50%, -50%);
+          content: "\2630"; color: #fff; font-size: 22px; line-height: 1;
+          position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
         }}
 
-        /* Marca / logo: centrada, tamano medio (no gigante) */
+        /* Logo mas grande y con aire arriba/abajo, separado del buscador */
         .am-brand {{
-          justify-content: center;
-          gap: 6px;
-          text-align: center;
-          width: 100%;
-          padding: 2px 0;
+          justify-content: center; gap: 6px; text-align: center;
+          width: 100%; padding: 8px 0 6px 0;
         }}
-        .am-brand-name {{ font-size: 20px; }}
+        .am-brand-name {{ font-size: 22px; }}
         .am-brand-market {{ font-size: 10px; letter-spacing: 2px; }}
         .am-brand-logo {{
-          height: 52px !important;
+          height: 72px !important;
           margin-left: 0 !important;
-          margin-bottom: 0;
+          margin-bottom: 4px !important;
+          margin-top: 4px !important;
         }}
 
-        /* Buscador: input + boton lupa en la MISMA fila */
+        /* Buscador */
         div[data-testid="stTextInput"] > div > div > input {{
-          height: 42px !important;
-          font-size: 16px !important; /* evita zoom en iOS */
-          border-radius: 10px !important;
+          height: 44px !important;
+          font-size: 16px !important;
+          border-radius: 10px 0 0 10px !important;
           padding: 0 12px !important;
         }}
         .st-key-btn_search button {{
           width: 100% !important;
-          height: 42px !important;
-          min-height: 42px !important;
-          border-radius: 10px !important;
-          font-size: 18px !important;
+          height: 44px !important;
+          min-height: 44px !important;
+          border-radius: 0 10px 10px 0 !important;
+          font-size: 20px !important;
           padding: 0 !important;
         }}
 
-        /* "Mi cuenta": solo icono de persona (oculta cualquier texto) */
+        /* Iconos de cuenta y carrito: mas grandes y alineados con menu */
         .am-tb-item {{
-          width: 42px !important;
-          height: 42px !important;
-          display: flex !important;
-          justify-content: center !important;
-          align-items: center !important;
-          padding: 0 !important;
-          font-size: 0 !important;
-          color: transparent !important;
-          border-radius: 10px;
-          position: relative;
-          overflow: hidden;
+          width: 46px !important; height: 46px !important;
+          display: flex !important; justify-content: center !important; align-items: center !important;
+          padding: 0 !important; font-size: 0 !important; color: transparent !important;
+          border-radius: 12px; position: relative; overflow: hidden;
         }}
-        .am-tb-item * {{
-          font-size: 0 !important;
-          color: transparent !important;
-          display: none !important;
-        }}
+        .am-tb-item * {{ font-size: 0 !important; color: transparent !important; display: none !important; }}
         .am-tb-item::before {{
-          content: "👤";
-          font-size: 20px;
-          line-height: 1;
-          color: initial;
-          position: absolute;
-          top: 50%; left: 50%;
-          transform: translate(-50%, -50%);
+          content: "\1F464"; font-size: 24px; line-height: 1; color: initial;
+          position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
         }}
 
-        /* Carrito compacto (icono más pequeño) */
         .am-cart-btn {{
-          width: 42px !important;
-          min-width: 42px !important;
-          height: 42px !important;
-          padding: 0 !important;
-          border-radius: 10px !important;
-          font-size: 0 !important;
-          color: transparent !important;
-          position: relative;
-          overflow: visible;
+          width: 46px !important; min-width: 46px !important;
+          height: 46px !important; padding: 0 !important;
+          border-radius: 12px !important;
+          font-size: 0 !important; color: transparent !important;
+          position: relative; overflow: visible;
+          display: flex !important; align-items: center !important; justify-content: center !important;
         }}
-        .am-cart-btn * {{
-          font-size: 0 !important;
-          color: transparent !important;
-        }}
+        .am-cart-btn * {{ font-size: 0 !important; color: transparent !important; }}
         .am-cart-btn::before {{
-          content: "🛒";
-          font-size: 20px;
-          line-height: 1;
-          color: initial;
-          position: absolute;
-          top: 50%; left: 50%;
-          transform: translate(-50%, -50%);
+          content: "\1F6D2"; font-size: 22px; line-height: 1; color: initial;
+          position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
         }}
         .am-cart-badge {{
           min-width: 16px; height: 16px; font-size: 10px;
           top: -4px !important; right: -4px !important;
         }}
 
-        /* --- Productos en scroll HORIZONTAL (como en escritorio) --- */
-        .am-section [data-testid="stHorizontalBlock"] {{
+        /* ================= HOME: PREVIEW DE APARTADOS ================= */
+        /* Productos preview: scroll HORIZONTAL, uno al lado del otro */
+        .am-section > [data-testid="stHorizontalBlock"],
+        .am-section [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] {{
+          display: flex !important;
+          flex-direction: row !important;
           flex-wrap: nowrap !important;
           overflow-x: auto !important;
-          overflow-y: hidden;
+          overflow-y: hidden !important;
           scroll-snap-type: x mandatory;
           -webkit-overflow-scrolling: touch;
           gap: 10px !important;
           padding-bottom: 6px;
         }}
-        .am-section [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{
-          flex: 0 0 46% !important;
-          min-width: 46% !important;
-          width: 46% !important;
+        .am-section > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"],
+        .am-section [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{
+          flex: 0 0 44% !important;
+          min-width: 44% !important;
+          width: 44% !important;
           scroll-snap-align: start;
         }}
-        /* Encabezado de sección: mantiene layout normal (título + Ver más) */
-        .am-section > [data-testid="stHorizontalBlock"]:first-of-type,
-        .am-section [data-testid="stHorizontalBlock"]:has(.am-section-title-h) {{
+        /* Excepcion: la cabecera (titulo + Ver mas) mantiene fila normal */
+        .am-section > [data-testid="stHorizontalBlock"]:has(.am-section-title-h) {{
           flex-wrap: wrap !important;
           overflow: visible !important;
-          scroll-snap-type: none;
+          scroll-snap-type: none !important;
         }}
-        .am-section > [data-testid="stHorizontalBlock"]:first-of-type > [data-testid="stColumn"],
-        .am-section [data-testid="stHorizontalBlock"]:has(.am-section-title-h) > [data-testid="stColumn"] {{
+        .am-section > [data-testid="stHorizontalBlock"]:has(.am-section-title-h) > [data-testid="stColumn"] {{
           flex: 1 1 auto !important;
           min-width: 0 !important;
           width: auto !important;
         }}
 
-        /* --- Categorias (circulos) mas pequenos, tipo Madison --- */
+        /* ================= CATEGORIAS (circulos) ================= */
         .am-cats-wrap {{ padding: 12px 0 14px 0; margin-bottom: 12px; }}
         .am-cats-scroll {{ gap: 10px; padding: 0 12px; }}
         .am-cat-circle {{ min-width: 68px; gap: 6px; }}
         .am-cat-circle .bubble {{ width: 64px; height: 64px; font-size: 28px; }}
         .am-cat-circle .label {{ font-size: 12px; max-width: 78px; font-weight: 700; }}
 
-        /* --- Secciones de apartado --- */
+        /* ================= SECCIONES ================= */
         .am-wrap {{ padding: 0 12px; }}
         .am-section {{
           padding: 14px 12px 12px 12px;
@@ -1061,21 +1024,73 @@ st.markdown(
           border-radius: 14px;
         }}
         .am-section-head {{
-          flex-direction: row;
-          align-items: center;
-          justify-content: space-between;
-          gap: 8px;
-          margin-bottom: 12px;
+          flex-direction: row; align-items: center;
+          justify-content: space-between; gap: 8px; margin-bottom: 12px;
         }}
         .am-section-title-h {{ font-size: 17px; gap: 6px; }}
 
-        /* Tarjetas */
-        .am-card {{ padding: 10px 8px 8px 8px; border-radius: 12px; }}
-        .am-card img {{ max-height: 130px; }}
-        .am-name {{ font-size: 12.5px; min-height: 30px; margin: 6px 2px 4px 2px; }}
-        .am-price {{ font-size: 13px; padding: 4px 10px; }}
+        /* Mini card en preview horizontal (mas pequeno para que quepa) */
         .am-mini {{ padding: 6px 6px 8px 6px; }}
-        .am-mini img {{ max-height: 100px; }}
+        .am-mini img {{ max-height: 90px; }}
+        .am-mini .name {{ font-size: 11.5px; min-height: 28px; margin: 4px 2px 2px 2px; }}
+        .am-mini .price {{ font-size: 11px; padding: 3px 8px; }}
+
+        /* ================= VISTA "VER MAS" (LISTA HORIZONTAL) ================= */
+        /* En la pagina de un apartado o de busqueda: imagen izq, nombre centro, boton derecha */
+        .am-plist [data-testid="stHorizontalBlock"] {{
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 10px !important;
+        }}
+        .am-plist [data-testid="stColumn"] {{
+          flex: 1 1 100% !important;
+          width: 100% !important;
+          min-width: 100% !important;
+          display: block !important;
+        }}
+        /* Cada tarjeta se convierte en fila: imagen | nombre+precio | boton */
+        .am-plist .am-card {{
+          display: grid !important;
+          grid-template-columns: 78px 1fr auto !important;
+          grid-template-areas: "img body price" !important;
+          gap: 10px !important;
+          text-align: left !important;
+          padding: 10px !important;
+          align-items: center !important;
+          margin-bottom: 4px !important;
+        }}
+        .am-plist .am-card img {{
+          grid-area: img !important;
+          width: 78px !important; height: 78px !important;
+          max-height: 78px !important;
+          margin: 0 !important;
+        }}
+        .am-plist .am-card .am-name {{
+          grid-area: body !important;
+          margin: 0 !important;
+          min-height: 0 !important;
+          font-size: 13px !important;
+          font-weight: 700 !important;
+          line-height: 1.25 !important;
+          text-align: left !important;
+          align-self: center !important;
+        }}
+        .am-plist .am-card .am-price {{
+          grid-area: price !important;
+          font-size: 13px !important;
+          padding: 4px 10px !important;
+          margin: 0 !important;
+          justify-self: end !important;
+        }}
+        .am-plist .am-card-gap {{ display: none !important; }}
+        /* Boton "Agregar al carrito": queda debajo de la tarjeta pero compacto y de ancho completo */
+        .am-plist div[data-testid="stButton"] > button {{
+          min-height: 38px !important;
+          font-size: 13px !important;
+          padding: 6px 10px !important;
+          margin-top: -2px !important;
+          margin-bottom: 10px !important;
+        }}
 
         div[data-testid="stButton"] > button {{
           min-height: 42px !important;
@@ -1086,13 +1101,17 @@ st.markdown(
       /* Telefonos angostos */
       @media (max-width: 420px) {{
         .am-wrap {{ padding: 0 10px; }}
-        .am-brand-name {{ font-size: 18px; }}
-        .am-brand-logo {{ height: 46px !important; }}
+        .am-brand-name {{ font-size: 20px; }}
+        .am-brand-logo {{ height: 64px !important; }}
         .am-cat-circle .bubble {{ width: 58px; height: 58px; font-size: 26px; }}
         .am-cat-circle {{ min-width: 62px; }}
         .am-cat-circle .label {{ font-size: 11.5px; max-width: 72px; }}
         .am-section-title-h {{ font-size: 16px; }}
-        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(4) {{ flex: 0 0 52px !important; width: 52px !important; }}
+        .am-section > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{
+          flex: 0 0 60% !important; min-width: 60% !important; width: 60% !important;
+        }}
+        .am-plist .am-card {{ grid-template-columns: 68px 1fr auto !important; }}
+        .am-plist .am-card img {{ width: 68px !important; height: 68px !important; max-height: 68px !important; }}
       }}
     </style>
     """,
@@ -1443,6 +1462,7 @@ st.markdown('<div class="am-wrap">', unsafe_allow_html=True)
 
 def render_product_grid(prods, key_prefix, cols_per_row=4):
     """Grid de productos completos (tarjeta grande + boton agregar)."""
+    st.markdown('<div class="am-plist">', unsafe_allow_html=True)
     for i in range(0, len(prods), cols_per_row):
         row = st.columns(cols_per_row)
         for j, (col, prod) in enumerate(zip(row, prods[i:i + cols_per_row])):
@@ -1468,6 +1488,7 @@ def render_product_grid(prods, key_prefix, cols_per_row=4):
                              use_container_width=True, type="primary"):
                     _open_add_dialog(prod)
                     st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ================== VISTA: CARRITO ==================
