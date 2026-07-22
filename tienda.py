@@ -1544,7 +1544,7 @@ with st.container(key="am_topbar_v2"):
 # ---------- Panel desplegable del menu (al lado izquierdo) ----------
 if st.session_state.get("menu_open", False):
     _items_html = "".join(
-        f'<a href="?cat={c}" target="_blank" rel="noopener" '
+        f'<a href="?cat={c}" target="_top" onclick="try{{window.top.location.href=\'?cat={c}\';}}catch(e){{window.location.href=\'?cat={c}\';}}return false;" '
         f'style="display:block;padding:12px 18px;border-bottom:1px solid rgba(255,255,255,.15);'
         f'font-family:Poppins,sans-serif;font-weight:600;font-size:14px;">'
         f'{c.capitalize()}</a>'
@@ -1588,7 +1588,7 @@ if categories:
         lc   = stl["label_color"]
         ls   = stl["label_size"]
         circles_html.append(
-            f'<a class="am-cat-circle" href="?cat={cat}" target="_blank" rel="noopener" style="min-width:{max(sz+20,80)}px;">'
+            f'<a class="am-cat-circle" href="?cat={cat}" target="_top" onclick="try{{window.top.location.href=\'?cat={cat}\';}}catch(e){{window.location.href=\'?cat={cat}\';}}return false;" style="min-width:{max(sz+20,80)}px;">'
 
             f'  <div class="bubble" style="width:{sz}px;height:{sz}px;'
             f'background: radial-gradient(circle at 30% 30%, color-mix(in srgb, {cc} 78%, white) 0%, {cc} 78%);'
@@ -1667,10 +1667,23 @@ def render_anuncios_banner():
     slides_html = []
     for i, s in enumerate(_slides):
         url = s["url"] or "#"
-        target_attr = 'target="_blank" rel="noopener"' if s["url"] else ""
+        _u_esc = url.replace("'", "\\'")
+        is_internal = url.startswith("?") or url.startswith("/") or url.startswith("#")
+        if s["url"] and not is_internal:
+            target_attr = 'target="_blank" rel="noopener"'
+            onclick_attr = ""
+        elif s["url"]:
+            target_attr = 'target="_top"'
+            onclick_attr = (
+                f"onclick=\"try{{window.top.location.href='{_u_esc}';}}"
+                f"catch(e){{window.location.href='{_u_esc}';}}return false;\""
+            )
+        else:
+            target_attr = ""
+            onclick_attr = ""
         anim = f"animation: amSlide{i} {total}s linear infinite;" if n > 1 else ""
         slides_html.append(
-            f'<a class="am-slide" href="{url}" {target_attr} '
+            f'<a class="am-slide" href="{url}" {target_attr} {onclick_attr} '
             f'style="{anim}">'
             f'<img src="data:image/png;base64,{s["b64"]}"/>'
             f'</a>'
@@ -1754,8 +1767,22 @@ def render_anuncios_banner():
             b64   = (c.get("img_b64") or "").strip()
             img_html = (f'<img src="data:image/png;base64,{b64}"/>'
                         if b64 else '<div style="color:#aaa;font-size:12px;">Sin imagen</div>')
+            _u_esc = url.replace("'", "\\'")
+            is_internal = url.startswith("?") or url.startswith("/") or url.startswith("#")
+            if url != "#" and not is_internal:
+                target_attr = 'target="_blank" rel="noopener"'
+                onclick_attr = ""
+            elif url != "#":
+                target_attr = 'target="_top"'
+                onclick_attr = (
+                    f"onclick=\"try{{window.top.location.href='{_u_esc}';}}"
+                    f"catch(e){{window.location.href='{_u_esc}';}}return false;\""
+                )
+            else:
+                target_attr = ""
+                onclick_attr = ""
             html.append(
-                f'<a class="am-ads-card" href="{url}" target="_top">'
+                f'<a class="am-ads-card" href="{url}" {target_attr} {onclick_attr}>'
                 f'<div class="t">{title or "&nbsp;"}</div>'
                 f'<div class="imgbox">{img_html}</div>'
                 f'<div class="lnk">Ver más &rsaquo;</div>'
@@ -2045,7 +2072,8 @@ elif not current_cat:
                 f'    <span class="am-tile-count">· {total_cat} producto(s)</span>'
                 f'  </div>'
                 f'  {grid_html}'
-                f'  <a class="am-tile-more" href="?cat={cat}" target="_blank" rel="noopener" '
+                f'  <a class="am-tile-more" href="?cat={cat}" target="_top" '
+                f'     onclick="try{{window.top.location.href=\'?cat={cat}\';}}catch(e){{window.location.href=\'?cat={cat}\';}}return false;" '
                 f'     style="background:{mbg};color:{mfg};">Ver más →</a>'
                 f'</div>'
             )
