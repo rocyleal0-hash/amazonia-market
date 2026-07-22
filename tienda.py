@@ -418,13 +418,20 @@ def icon_for_category(name: str, overrides: dict) -> str:
 # Carrito (session_state)
 # ----------------------------------------------------------
 def _cart():
+    # >>> CARRITO INDIVIDUAL POR VISITANTE <<<
+    # Cada sesion de navegador tiene su propio session_state, asi que
+    # NO leemos ni guardamos el archivo compartido cart.json. De esa
+    # forma cuando entra otra persona (otro telefono / IP / navegador)
+    # su carrito siempre arranca vacio y no ve lo que otros agregaron.
     if "cart" not in st.session_state:
-        st.session_state.cart = _load_cart_file()
+        st.session_state.cart = {}
     return st.session_state.cart
 
 
 def _persist():
-    _save_cart_file(st.session_state.get("cart", {}))
+    # No-op a proposito: el carrito NO se persiste en disco para que
+    # cada visitante tenga el suyo (ver comentario en _cart()).
+    return
 
 
 def cart_add(prod, qty=1):
@@ -542,6 +549,7 @@ _tiktok_url    = (_settings.get("social_tiktok_url",    "") or "").strip()
 _btn_cart_bg   = _settings.get("btn_cart_bg",   "rgba(255,255,255,.08)")
 _btn_cart_fg   = _settings.get("btn_cart_fg",   "#FFFFFF")
 _delivery_text = _settings.get("delivery_text", "🚚  Delivery GRATIS en toda la zona de Coro")
+_delivery_color = _settings.get("delivery_text_color", "#FFFFFF")
 # --- Fondo completo de la pagina web ---
 _pg_type   = _settings.get("page_bg_type", "color")
 _pg_color  = _settings.get("page_bg_color", "#F4F5F7")
@@ -659,18 +667,38 @@ st.markdown(
       {"" if not _tb_bg_img_b64 else f".st-key-am_topbar_v2::before {{ content:''; position:absolute; inset:0; background: inherit; filter: blur({_tb_blur}px) brightness({_tb_bri}%) saturate({_tb_sat}%); opacity:{_tb_op/100:.2f}; pointer-events:none; z-index:0; }} .st-key-am_topbar_v2 > * {{ position: relative; z-index: 1; }}"}
       /* que los labels/inputs internos hereden buen contraste sobre azul */
       .st-key-am_topbar_v2 label, .st-key-am_topbar_v2 p {{ color: #fff !important; }}
-      /* Banner de delivery */
+      /* Banner de delivery - MARQUEE (deslizando continuo) */
       .am-delivery-banner {{
-        text-align: center;
-        font-weight: 700;
-        font-size: 14px;
-        letter-spacing: .2px;
-        padding: 10px 12px 12px 12px;
-        color: #fff;
+        overflow: hidden;
+        color: {_delivery_color};
         border-bottom: 1px solid rgba(255,255,255,.18);
-        background: transparent;
-        margin: 0 -24px 10px -24px;
+        background: rgba(0,0,0,.18);
+        margin: 0 -24px 12px -24px;
+        padding: 16px 0 18px 0;
+        position: relative;
+        min-height: 56px;
+        display: flex;
+        align-items: center;
       }}
+      .am-delivery-track {{
+        display: inline-flex;
+        white-space: nowrap;
+        animation: am-marquee 28s linear infinite;
+        will-change: transform;
+      }}
+      .am-delivery-track span {{
+        font-weight: 900;
+        font-size: 22px;
+        letter-spacing: .4px;
+        padding: 0 60px;
+        color: {_delivery_color};
+        line-height: 1.2;
+      }}
+      @keyframes am-marquee {{
+        0%   {{ transform: translateX(0); }}
+        100% {{ transform: translateX(-50%); }}
+      }}
+      .am-delivery-banner:hover .am-delivery-track {{ animation-play-state: paused; }}
       .am-brand {{
         display: flex; align-items: center; gap: 10px;
       }}
@@ -1123,9 +1151,14 @@ st.markdown(
           margin-bottom: 10px !important;
         }}
         .am-delivery-banner {{
-          font-size: 12px; padding: 8px 10px;
+          padding: 12px 0 14px 0;
           margin: 0 -10px 12px -10px;
-          line-height: 1.35;
+          min-height: 46px;
+        }}
+        .am-delivery-banner .am-delivery-track span {{
+          font-size: 17px;
+          padding: 0 36px;
+          font-weight: 900;
         }}
 
         /* Forzamos SIEMPRE fila horizontal (Streamlit apila columnas en mobile) */
@@ -1441,10 +1474,20 @@ st.markdown("""
   div[data-testid="stDecoration"] { display: none !important; }
   div[data-testid="stToolbar"] { display: none !important; }
 
-  /* Subir el topbar al borde superior de la pagina */
-  .st-key-am_topbar_v2 {
-      margin-top: -6px !important;
+  /* Subir el topbar al borde superior de la pagina (elimina franja gris de arriba) */
+  [data-testid="stAppViewContainer"] > .main > .block-container,
+  [data-testid="stMainBlockContainer"],
+  [data-testid="stAppViewBlockContainer"] {
       padding-top: 0 !important;
+      margin-top: 0 !important;
+  }
+  .stApp > header { display: none !important; }
+  .st-key-am_topbar_v2 {
+      margin-top: -80px !important;
+      padding-top: 12px !important;
+  }
+  @media (max-width: 780px) {
+      .st-key-am_topbar_v2 { margin-top: -60px !important; padding-top: 10px !important; }
   }
   /* Subir un poco el banner de delivery y todos los elementos internos */
   .st-key-am_topbar_v2 .am-delivery-banner {
@@ -1462,8 +1505,14 @@ st.markdown("""
 
 with st.container(key="am_topbar_v2"):
     # 1) Banner de delivery arriba de todo, dentro de la banda azul.
+    # Repetimos el texto varias veces dentro del track para que el
+    # marquee nunca deje "hueco" y siempre se vea el mensaje.
+    _dtxt = _delivery_text
+    _one = f'<span>{_dtxt}</span>'
+    # 2 grupos identicos: la animacion translateX(-50%) los recicla infinito.
+    _group = _one * 6
     st.markdown(
-        f'<div class="am-delivery-banner">{_delivery_text}</div>',
+        f'<div class="am-delivery-banner"><div class="am-delivery-track">{_group}{_group}</div></div>',
         unsafe_allow_html=True,
     )
 
