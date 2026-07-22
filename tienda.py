@@ -648,7 +648,7 @@ st.markdown(
         background:
           {"url('data:image/png;base64," + _tb_bg_img_b64 + "') center/cover no-repeat, " if _tb_bg_img_b64 else ""}{_tb_bg_color} !important;
         color: #fff;
-        padding: 0 24px 14px 24px !important;
+        padding: 0 24px 10px 24px !important;
         margin-top: 0 !important;
         margin-bottom: 8px !important;
         box-shadow: 0 4px 14px rgba(0,0,0,.12);
@@ -1429,6 +1429,37 @@ for c in present:
 n_cart = cart_count()
 
 # TODO EL HEADER va DENTRO de este contenedor -> queda dentro de la banda azul.
+st.markdown("""
+<style>
+  /* === FIX: eliminar el espacio gris arriba del topbar === */
+  html, body { margin: 0 !important; padding: 0 !important; }
+  [data-testid="stAppViewContainer"] { padding-top: 0 !important; }
+  [data-testid="stAppViewContainer"] > .main { padding-top: 0 !important; }
+  section.main { padding-top: 0 !important; }
+  section.main > div.block-container { padding-top: 0 !important; margin-top: 0 !important; }
+  header[data-testid="stHeader"] { display: none !important; height: 0 !important; }
+  div[data-testid="stDecoration"] { display: none !important; }
+  div[data-testid="stToolbar"] { display: none !important; }
+
+  /* Subir el topbar al borde superior de la pagina */
+  .st-key-am_topbar_v2 {
+      margin-top: -6px !important;
+      padding-top: 0 !important;
+  }
+  /* Subir un poco el banner de delivery y todos los elementos internos */
+  .st-key-am_topbar_v2 .am-delivery-banner {
+      padding: 4px 12px !important;
+      margin-top: 0 !important;
+  }
+  .st-key-am_topbar_v2 [data-testid="stHorizontalBlock"] {
+      margin-top: -4px !important;
+  }
+  .st-key-am_topbar_v2 img.am-brand-logo {
+      margin-top: -4px !important;
+  }
+</style>
+""", unsafe_allow_html=True)
+
 with st.container(key="am_topbar_v2"):
     # 1) Banner de delivery arriba de todo, dentro de la banda azul.
     st.markdown(
@@ -1837,7 +1868,12 @@ def render_anuncios_banner():
     st.markdown("".join(html), unsafe_allow_html=True)
 
 
-render_anuncios_banner()
+# Los anuncios SOLO se muestran en la pagina de inicio (home).
+# Cuando el usuario entra a un apartado, al carrito o hace una busqueda,
+# no se renderiza el banner de anuncios.
+_is_home_view = (not view) and (not current_cat) and (not url_q)
+if _is_home_view:
+    render_anuncios_banner()
 
 
 
@@ -2184,3 +2220,75 @@ st.markdown("</div>", unsafe_allow_html=True)  # cierra am-wrap
 # Render del dialogo si esta activo
 if st.session_state.get("_add_dialog_prod"):
     _render_add_dialog()
+
+
+# ==========================================================
+# BOTON FLOTANTE VERDE "Pagar ahora" (esquina inferior derecha)
+# ==========================================================
+# Se muestra cuando hay productos en el carrito y NO estamos en la
+# pagina del carrito. Al hacer clic lleva a ?view=cart.
+try:
+    _n_cart_float = cart_count()
+except Exception:
+    _n_cart_float = 0
+
+if _n_cart_float > 0 and view != "cart":
+    _pay_href = _html_attr(app_url(view="cart"))
+    st.markdown(
+        f'''
+        <style>
+          .am-pay-float {{
+              position: fixed;
+              right: 22px;
+              bottom: 22px;
+              z-index: 99999;
+              background: #16a34a;
+              color: #ffffff !important;
+              font-family: Poppins, Arial, sans-serif;
+              font-weight: 800;
+              font-size: 18px;
+              letter-spacing: .3px;
+              padding: 16px 26px;
+              border-radius: 999px;
+              box-shadow: 0 10px 24px rgba(0,0,0,.28);
+              text-decoration: none !important;
+              display: inline-flex;
+              align-items: center;
+              gap: 10px;
+              border: 2px solid rgba(255,255,255,.25);
+              transition: transform .12s ease, background .15s ease, box-shadow .15s ease;
+          }}
+          .am-pay-float:hover {{
+              background: #15803d;
+              transform: translateY(-2px);
+              box-shadow: 0 14px 28px rgba(0,0,0,.32);
+          }}
+          .am-pay-float .am-pay-badge {{
+              background: #ffffff;
+              color: #16a34a;
+              font-size: 13px;
+              font-weight: 900;
+              min-width: 22px;
+              height: 22px;
+              padding: 0 7px;
+              border-radius: 999px;
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+          }}
+          @media (max-width: 640px) {{
+              .am-pay-float {{
+                  right: 14px;
+                  bottom: 14px;
+                  font-size: 16px;
+                  padding: 14px 20px;
+              }}
+          }}
+        </style>
+        <a class="am-pay-float" href="{_pay_href}" target="_self">
+          🛒 Pagar ahora <span class="am-pay-badge">{_n_cart_float}</span>
+        </a>
+        ''',
+        unsafe_allow_html=True,
+    )
+
