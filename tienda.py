@@ -24,7 +24,9 @@ import base64
 import io
 import json
 import re
+import html
 from pathlib import Path
+from urllib.parse import quote, urlsplit
 
 import streamlit as st
 from PIL import Image, ImageFilter
@@ -48,6 +50,53 @@ CAT_STYLES_FILE  = BASE_DIR / "category_styles.json"
 TITLES_FILE      = BASE_DIR / "titles_settings.json"
 CART_FILE        = BASE_DIR / "cart.json"
 ANUNCIOS_FILE    = BASE_DIR / "anuncios.json"
+
+# URL real de la tienda publicada. Todos los clics internos usan esta base
+# para evitar que Streamlit abra localhost:8501 en teléfonos o iframes.
+PUBLIC_APP_URL = "https://amazonia-market-28jgxrruwh624x9qvdvjnm.streamlit.app/"
+
+
+def _html_attr(value) -> str:
+    return html.escape(str(value or ""), quote=True)
+
+
+def app_url(view=None, cat=None, q=None) -> str:
+    """Construye enlaces internos absolutos hacia la app publicada."""
+    params = []
+    if view:
+        params.append("view=" + quote(str(view), safe=""))
+    if cat:
+        params.append("cat=" + quote(str(cat), safe=""))
+    if q:
+        params.append("q=" + quote(str(q), safe=""))
+    base = PUBLIC_APP_URL.rstrip("/") + "/"
+    return base + (("?" + "&".join(params)) if params else "")
+
+
+def normalize_app_link(url: str) -> str:
+    """Convierte ?, / y localhost:8501 a la URL real de Streamlit."""
+    raw = str(url or "").strip()
+    if not raw or raw == "#":
+        return "#"
+    low = raw.lower()
+    if low.startswith("http://localhost") or low.startswith("https://localhost") or low.startswith("http://127.0.0.1") or low.startswith("https://127.0.0.1"):
+        try:
+            parsed = urlsplit(raw)
+            suffix = ""
+            if parsed.query:
+                suffix += "?" + parsed.query
+            if parsed.fragment:
+                suffix += "#" + parsed.fragment
+            return (PUBLIC_APP_URL.rstrip("/") + "/" + suffix) if suffix else app_url()
+        except Exception:
+            return app_url()
+    if raw.startswith("?"):
+        return PUBLIC_APP_URL.rstrip("/") + "/" + raw
+    if raw.startswith("/"):
+        return PUBLIC_APP_URL.rstrip("/") + raw
+    if raw.startswith("#"):
+        return PUBLIC_APP_URL.rstrip("/") + "/" + raw
+    return raw
 
 
 def load_site_settings() -> dict:
@@ -426,23 +475,42 @@ st.set_page_config(
     layout="wide",
 )
 
-# Forzar que TODOS los enlaces internos naveguen en la MISMA pestaña
-# (rompen el iframe de Streamlit y reemplazan la ventana actual).
+# Forzar que TODOS los enlaces internos abran una pestaña nueva con la URL
+# REAL de Streamlit, nunca con localhost:8501.
 st.markdown(
-    """
-    <base target="_top">
+    f"""
+    <base target="_blank">
     <script>
-    (function(){
-      function fixLinks(){
-        document.querySelectorAll('a[href]').forEach(function(a){
+    (function(){{
+      var APP_BASE = {PUBLIC_APP_URL!r};
+      function fixedUrl(href){{
+        if (!href || href === '#') return href;
+        try {{
+          var low = href.toLowerCase();
+          if (href.charAt(0) === '?') return APP_BASE.replace(/\\/$/, '/') + href;
+          if (href.charAt(0) === '/') return APP_BASE.replace(/\\/$/, '') + href;
+          if (href.charAt(0) === '#') return APP_BASE.replace(/\\/$/, '/') + href;
+          if (low.indexOf('localhost') >= 0 || low.indexOf('127.0.0.1') >= 0) {{
+            var u = new URL(href);
+            return APP_BASE.replace(/\\/$/, '/') + (u.search || '') + (u.hash || '');
+          }}
+        }} catch(e) {{}}
+        return href;
+      }}
+      function fixLinks(){{
+        document.querySelectorAll('a[href]').forEach(function(a){{
           var href = a.getAttribute('href') || '';
-          if (href.startsWith('http') && !href.includes(location.host)) return;
-          a.setAttribute('target','_top');
-        });
-      }
+          var fixed = fixedUrl(href);
+          if (fixed) a.setAttribute('href', fixed);
+          if (fixed && fixed !== '#') {{
+            a.setAttribute('target','_blank');
+            a.setAttribute('rel','noopener');
+          }}
+        }});
+      }}
       fixLinks();
-      new MutationObserver(fixLinks).observe(document.body, {childList:true, subtree:true});
-    })();
+      new MutationObserver(fixLinks).observe(document.body, {{childList:true, subtree:true}});
+    }})();
     </script>
     """,
     unsafe_allow_html=True,
@@ -1403,7 +1471,7 @@ with st.container(key="am_topbar_v2"):
             f'<img class="am-brand-logo" style="height:{_logo_size_px}px;margin-left:{_logo_offx_px}px;" src="data:image/png;base64,{topbar_logo_b64}" alt="logo"/>')
         st.markdown(
             f"""
-            <a href="?" class="am-brand" target="_top" style="text-decoration:none;">
+            <a href="{_html_attr(app_url())}" class="am-brand" target="_blank" rel="noopener" style="text-decoration:none;">
 
               {logo_html}
               <div>{titles_html}</div>
@@ -1531,8 +1599,8 @@ with st.container(key="am_topbar_v2"):
         st.markdown(
             f"""
             <div style="display:flex; justify-content:center;">
-              <a class="am-cart-btn" href="?view=cart" title="Ver carrito"
-                 <a href="?view=cart" class="tu-clase" aria-label="Ver carrito" target="_top">
+              <a class="am-cart-btn" href="{_html_attr(app_url(view='cart'))}" title="Ver carrito"
+                 aria-label="Ver carrito" target="_blank" rel="noopener">
                 🛒{_badge}
               </a>
             </div>
@@ -1544,7 +1612,7 @@ with st.container(key="am_topbar_v2"):
 # ---------- Panel desplegable del menu (al lado izquierdo) ----------
 if st.session_state.get("menu_open", False):
     _items_html = "".join(
-        f'<a href="?cat={c}" target="_top" onclick="try{{window.top.location.href=\'?cat={c}\';}}catch(e){{window.location.href=\'?cat={c}\';}}return false;" '
+        f'<a href="{_html_attr(app_url(cat=c))}" target="_blank" rel="noopener" '
         f'style="display:block;padding:12px 18px;border-bottom:1px solid rgba(255,255,255,.15);'
         f'font-family:Poppins,sans-serif;font-weight:600;font-size:14px;">'
         f'{c.capitalize()}</a>'
@@ -1588,7 +1656,7 @@ if categories:
         lc   = stl["label_color"]
         ls   = stl["label_size"]
         circles_html.append(
-            f'<a class="am-cat-circle" href="?cat={cat}" target="_top" onclick="try{{window.top.location.href=\'?cat={cat}\';}}catch(e){{window.location.href=\'?cat={cat}\';}}return false;" style="min-width:{max(sz+20,80)}px;">'
+            f'<a class="am-cat-circle" href="{_html_attr(app_url(cat=cat))}" target="_blank" rel="noopener" style="min-width:{max(sz+20,80)}px;">'
 
             f'  <div class="bubble" style="width:{sz}px;height:{sz}px;'
             f'background: radial-gradient(circle at 30% 30%, color-mix(in srgb, {cc} 78%, white) 0%, {cc} 78%);'
@@ -1666,11 +1734,12 @@ def render_anuncios_banner():
 
     slides_html = []
     for i, s in enumerate(_slides):
-        url = s["url"] or "#"
-        target_attr = 'target="_blank" rel="noopener"' if s["url"] else ""
+        url = normalize_app_link(s["url"] or "#")
+        target_attr = 'target="_blank" rel="noopener"' if url != "#" else ""
+        onclick_attr = ""
         anim = f"animation: amSlide{i} {total}s linear infinite;" if n > 1 else ""
         slides_html.append(
-            f'<a class="am-slide" href="{url}" {target_attr} '
+            f'<a class="am-slide" href="{url}" {target_attr} {onclick_attr} '
             f'style="{anim}">'
             f'<img src="data:image/png;base64,{s["b64"]}"/>'
             f'</a>'
@@ -1750,12 +1819,14 @@ def render_anuncios_banner():
         html.append('<div class="am-ads-cards">')
         for c in _cards:
             title = (c.get("title") or "").strip()
-            url   = (c.get("url") or "").strip() or "#"
+            url   = normalize_app_link((c.get("url") or "").strip() or "#")
             b64   = (c.get("img_b64") or "").strip()
             img_html = (f'<img src="data:image/png;base64,{b64}"/>'
                         if b64 else '<div style="color:#aaa;font-size:12px;">Sin imagen</div>')
+            target_attr = 'target="_blank" rel="noopener"' if url != "#" else ""
+            onclick_attr = ""
             html.append(
-                f'<a class="am-ads-card" href="{url}" target="_top">'
+                f'<a class="am-ads-card" href="{url}" {target_attr} {onclick_attr}>'
                 f'<div class="t">{title or "&nbsp;"}</div>'
                 f'<div class="imgbox">{img_html}</div>'
                 f'<div class="lnk">Ver más &rsaquo;</div>'
@@ -2045,8 +2116,7 @@ elif not current_cat:
                 f'    <span class="am-tile-count">· {total_cat} producto(s)</span>'
                 f'  </div>'
                 f'  {grid_html}'
-                f'  <a class="am-tile-more" href="?cat={cat}" target="_top" '
-                f'     onclick="try{{window.top.location.href=\'?cat={cat}\';}}catch(e){{window.location.href=\'?cat={cat}\';}}return false;" '
+                f'  <a class="am-tile-more" href="{_html_attr(app_url(cat=cat))}" target="_blank" rel="noopener" '
                 f'     style="background:{mbg};color:{mfg};">Ver más →</a>'
                 f'</div>'
             )
