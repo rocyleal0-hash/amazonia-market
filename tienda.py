@@ -49,7 +49,9 @@ CAT_ICONS_FILE   = BASE_DIR / "category_icons.json"
 CAT_STYLES_FILE  = BASE_DIR / "category_styles.json"
 TITLES_FILE      = BASE_DIR / "titles_settings.json"
 CART_FILE        = BASE_DIR / "cart.json"
+CARTS_DIR        = BASE_DIR / "carts"   # carrito por cliente (cid)
 ANUNCIOS_FILE    = BASE_DIR / "anuncios.json"
+
 
 # URL real de la tienda publicada. Todos los clics internos usan esta base
 # para evitar que Streamlit abra localhost:8501 en teléfonos o iframes.
@@ -58,6 +60,16 @@ PUBLIC_APP_URL = "https://amazonia-market-28jgxrruwh624x9qvdvjnm.streamlit.app/"
 
 def _html_attr(value) -> str:
     return html.escape(str(value or ""), quote=True)
+
+
+def _current_cid() -> str:
+    """Client id del visitante (viene por ?cid=... desde localStorage)."""
+    try:
+        v = st.query_params.get("cid")
+        if isinstance(v, list): v = v[0] if v else None
+        return str(v or "")
+    except Exception:
+        return ""
 
 
 def app_url(view=None, cat=None, q=None) -> str:
@@ -69,8 +81,12 @@ def app_url(view=None, cat=None, q=None) -> str:
         params.append("cat=" + quote(str(cat), safe=""))
     if q:
         params.append("q=" + quote(str(q), safe=""))
+    cid = _current_cid()
+    if cid:
+        params.append("cid=" + quote(cid, safe=""))
     base = PUBLIC_APP_URL.rstrip("/") + "/"
     return base + (("?" + "&".join(params)) if params else "")
+
 
 
 def normalize_app_link(url: str) -> str:
@@ -417,21 +433,49 @@ def icon_for_category(name: str, overrides: dict) -> str:
 # ----------------------------------------------------------
 # Carrito (session_state)
 # ----------------------------------------------------------
+def _cart_path_for(cid: str):
+    if not cid:
+        return None
+    safe = "".join(ch for ch in cid if ch.isalnum() or ch in "-_")[:64]
+    if not safe:
+        return None
+    return CARTS_DIR / f"{safe}.json"
+
+
 def _cart():
-    # >>> CARRITO INDIVIDUAL POR VISITANTE <<<
-    # Cada sesion de navegador tiene su propio session_state, asi que
-    # NO leemos ni guardamos el archivo compartido cart.json. De esa
-    # forma cuando entra otra persona (otro telefono / IP / navegador)
-    # su carrito siempre arranca vacio y no ve lo que otros agregaron.
-    if "cart" not in st.session_state:
-        st.session_state.cart = {}
-    return st.session_state.cart
+    """Carrito INDIVIDUAL por visitante (identificado por ?cid=... que sale
+    del localStorage del navegador). Cada navegador/telefono tiene su propio
+    archivo, asi el carrito se conserva al navegar entre apartados en la
+    MISMA pestana, pero nunca se mezcla con el de otra persona."""
+    cid = _current_cid()
+    key = f"cart::{cid}" if cid else "cart"
+    if key not in st.session_state:
+        loaded = {}
+        p = _cart_path_for(cid)
+        if p and p.exists():
+            try:
+                loaded = json.loads(p.read_text(encoding="utf-8")) or {}
+            except Exception:
+                loaded = {}
+        st.session_state[key] = loaded
+    # alias para compatibilidad con codigo viejo que use st.session_state.cart
+    st.session_state.cart = st.session_state[key]
+    return st.session_state[key]
 
 
 def _persist():
-    # No-op a proposito: el carrito NO se persiste en disco para que
-    # cada visitante tenga el suyo (ver comentario en _cart()).
-    return
+    cid = _current_cid()
+    p = _cart_path_for(cid)
+    if not p:
+        return
+    try:
+        CARTS_DIR.mkdir(parents=True, exist_ok=True)
+        key = f"cart::{cid}"
+        data = st.session_state.get(key, st.session_state.get("cart", {}))
+        p.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    except Exception:
+        pass
+
 
 
 def cart_add(prod, qty=1):
@@ -482,14 +526,16 @@ st.set_page_config(
     layout="wide",
 )
 
-# Forzar que TODOS los enlaces internos abran una pestaña nueva con la URL
-# REAL de Streamlit, nunca con localhost:8501.
+# Navegacion en la MISMA pestana para todos los enlaces internos
+# (categorias, carrito, marca, etc.) para no perder el carrito.
+# Solo las redes sociales / URLs externas abren pestana nueva.
 st.markdown(
     f"""
-    <base target="_blank">
     <script>
     (function(){{
       var APP_BASE = {PUBLIC_APP_URL!r};
+      var APP_HOST = "";
+      try {{ APP_HOST = new URL(APP_BASE).host; }} catch(e) {{}}
       function fixedUrl(href){{
         if (!href || href === '#') return href;
         try {{
@@ -504,17 +550,42 @@ st.markdown(
         }} catch(e) {{}}
         return href;
       }}
+      function isInternal(href){{
+        if (!href || href === '#') return true;
+        var c = href.charAt(0);
+        if (c === '?' || c === '#' || c === '/') return true;
+        try {{
+          var u = new URL(href, APP_BASE);
+          return u.host === APP_HOST;
+        }} catch(e) {{ return false; }}
+      }}
+      var MY_CID = "";
+      try {{ MY_CID = new URLSearchParams(window.location.search).get('cid') || ''; }} catch(e) {{}}
+      function withCid(href){{
+        if (!MY_CID || !href || href === '#') return href;
+        try {{
+          var u = new URL(href, APP_BASE);
+          if (!u.searchParams.get('cid')) u.searchParams.set('cid', MY_CID);
+          return u.toString();
+        }} catch(e) {{ return href; }}
+      }}
       function fixLinks(){{
         document.querySelectorAll('a[href]').forEach(function(a){{
           var href = a.getAttribute('href') || '';
           var fixed = fixedUrl(href);
+          var internal = isInternal(fixed);
+          if (internal) fixed = withCid(fixed);
           if (fixed) a.setAttribute('href', fixed);
-          if (fixed && fixed !== '#') {{
+          if (internal) {{
+            a.setAttribute('target','_self');
+            a.removeAttribute('rel');
+          }} else {{
             a.setAttribute('target','_blank');
             a.setAttribute('rel','noopener');
           }}
         }});
       }}
+
       fixLinks();
       new MutationObserver(fixLinks).observe(document.body, {{childList:true, subtree:true}});
     }})();
@@ -522,6 +593,39 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+# --- Bootstrap del CID (identificador por navegador, en localStorage) ---
+# Si el visitante llega sin ?cid=..., generamos uno unico en su navegador y
+# recargamos con ese parametro. Todos los enlaces internos (categorias,
+# carrito, marca, tiles) lo conservan, asi el carrito NO se borra al
+# navegar y NO se comparte con otras personas.
+if not _current_cid():
+    st.markdown(
+        """
+        <script>
+        (function(){
+          try {
+            var k='am_cid';
+            var cid=localStorage.getItem(k);
+            if(!cid){
+              cid=(self.crypto&&self.crypto.randomUUID)
+                ? self.crypto.randomUUID()
+                : (Date.now().toString(36)+Math.random().toString(36).slice(2));
+              localStorage.setItem(k,cid);
+            }
+            var u=new URL(window.location.href);
+            if(!u.searchParams.get('cid')){
+              u.searchParams.set('cid',cid);
+              window.location.replace(u.toString());
+            }
+          } catch(e){}
+        })();
+        </script>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 
 
 logo_b64        = get_logo_b64()
@@ -2099,7 +2203,8 @@ if view == "cart":
                 _nav()
         with addc2:
             if st.button("🗑  Vaciar carrito", key="cart_clear", use_container_width=True):
-                st.session_state.cart = {}
+                _c = _cart(); _c.clear()
+
                 _persist()
                 st.rerun()
 
