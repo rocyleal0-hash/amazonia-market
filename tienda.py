@@ -4,21 +4,6 @@
 #     streamlit run tienda.py
 # Requisitos:  pip install streamlit pillow
 # ==========================================================
-#
-# Novedades (Ultra Actualización):
-#   * Barra superior azul estilo Madison Center con banner de delivery.
-#   * Topbar con: MENU, LOGO, BUSQUEDA global (con boton amarillo),
-#     Iniciar sesion / Mi cuenta, Loyalty Club y CARRITO con contador.
-#   * Fila de circulos azules (uno por apartado) con icono y nombre.
-#     Al hacer clic te lleva directo a ese apartado.
-#   * En el HOME, cada apartado se muestra como una fila:
-#         - Titulo del apartado a la izquierda
-#         - Boton "Ver mas ->" arriba a la derecha
-#         - Primeras 5 imagenes del apartado con su precio
-#   * Buscador GLOBAL: busca en TODOS los apartados a la vez.
-#   * Compatible con tus JSON actuales (products.json, categories.json).
-#     No necesitas cambiar tu app de escritorio (agregar_producto.py).
-# ==========================================================
 
 import base64
 import io
@@ -40,9 +25,6 @@ IMG_DIR.mkdir(exist_ok=True)
 # --- Personalizacion (compatibilidad con la app de escritorio) ---
 SETTINGS_FILE    = BASE_DIR / "site_settings.json"
 CUSTOM_LOGO_FILE = BASE_DIR / "site_logo.png"
-# Opcional: permite mapear nombre_de_apartado -> emoji/icono, para
-# personalizar los circulos de la barra de categorias. Si no existe,
-# se autodetecta un emoji por el nombre.
 CAT_ICONS_FILE   = BASE_DIR / "category_icons.json"
 CAT_STYLES_FILE  = BASE_DIR / "category_styles.json"
 TITLES_FILE      = BASE_DIR / "titles_settings.json"
@@ -55,37 +37,30 @@ def load_site_settings() -> dict:
         "site_name": "Amazonia",
         "site_market": "MARKET",
         "site_logo_b64": "",
-        # --- Personalizacion visual de la barra superior azul ---
-        "topbar_bg_color":  "#2A2A9C",   # color de fondo de la barra superior
-        "topbar_bg_image_b64": "",        # imagen de fondo opcional (b64)
-        "topbar_bg_blur":       "0",      # 0..20 px
-        "topbar_bg_brightness": "100",    # % (0..200) 100=normal
-        "topbar_bg_saturation": "100",    # % (0..200) 100=normal
-        "topbar_bg_opacity":    "100",    # % (0..100) sobre la imagen
-        # --- Botones de la barra superior ---
+        "topbar_bg_color":  "#2A2A9C",
+        "topbar_bg_image_b64": "",
+        "topbar_bg_blur":       "0",
+        "topbar_bg_brightness": "100",
+        "topbar_bg_saturation": "100",
+        "topbar_bg_opacity":    "100",
         "btn_menu_bg":   "rgba(255,255,255,.08)",
         "btn_menu_fg":   "#FFFFFF",
         "btn_search_bg": "#F5B301",
         "btn_search_fg": "#0F172A",
         "btn_cart_bg":   "rgba(255,255,255,.08)",
         "btn_cart_fg":   "#FFFFFF",
-        # --- Banner de delivery ---
         "delivery_text": "🚚  Delivery GRATIS en toda la zona de Coro",
-        # --- Fondo completo de la pagina ---
-        "page_bg_type":       "color",   # "color" | "image" | "none"
+        "page_bg_type":       "color",
         "page_bg_color":      "#F4F5F7",
         "page_bg_image_b64":  "",
         "page_bg_blur":       "0",
         "page_bg_brightness": "100",
         "page_bg_opacity":    "100",
-        # --- Ocultar el logo pequeno de la topbar ---
         "hide_logo":          "0",
-        # --- Estilos globales de secciones (por si un apartado no tiene los suyos) ---
         "section_title_color": "#2A2A9C",
         "section_title_size":  "22",
         "section_more_bg":     "#2A2A9C",
         "section_more_fg":     "#FFFFFF",
-        # --- Colores del CARRITO (todo personalizable) ---
         "cart_name_color":   "#0F172A",
         "cart_price_color":  "#0F172A",
         "cart_qty_color":    "#2A2A9C",
@@ -121,8 +96,6 @@ def load_category_icons() -> dict:
 
 
 def load_titles() -> list:
-    """Lista de bloques de titulo para la topbar: [{text, font, size, color, weight}, ...].
-    Retrocompatible: si no existe, usa site_name/site_market como 2 titulos."""
     if TITLES_FILE.exists():
         try:
             data = json.loads(TITLES_FILE.read_text(encoding="utf-8"))
@@ -144,8 +117,6 @@ def load_titles() -> list:
 
 
 def load_category_styles() -> dict:
-    """Estilos por apartado. {cat: {icon, circle_color, circle_size, label_color,
-       label_size, title_color, title_size, more_bg, more_fg}}"""
     if CAT_STYLES_FILE.exists():
         try:
             data = json.loads(CAT_STYLES_FILE.read_text(encoding="utf-8"))
@@ -171,7 +142,6 @@ def get_cat_style(cat: str, styles: dict) -> dict:
     }
 
 
-# ----- Carrito persistente en disco (fix bug: el <a href> reseteaba session_state) -----
 def _load_cart_file() -> dict:
     if CART_FILE.exists():
         try:
@@ -185,20 +155,18 @@ def _load_cart_file() -> dict:
 
 def _save_cart_file(cart: dict) -> None:
     try:
-        CART_FILE.write_text(json.dumps(cart, ensure_ascii=False, indent=2),
-                             encoding="utf-8")
+        CART_FILE.write_text(json.dumps(cart, ensure_ascii=False, indent=2), encoding="utf-8")
     except Exception:
         pass
 
 
 def load_anuncios() -> dict:
-    """Configuracion de anuncios (banner + 4 tarjetas). Estilo Amazon."""
     defaults = {
         "banner_img_b64": "",
-        "banner_brightness": 100,    # 0..200
-        "banner_blur": 0,            # 0..20 px
-        "banner_overlay": 0,         # 0..70 (oscurecer)
-        "banner_height": 460,        # px (alto para que la imagen HD entre completa)
+        "banner_brightness": 100,
+        "banner_blur": 0,
+        "banner_overlay": 0,
+        "banner_height": 460,
         "cards": [
             {"title": "", "img_b64": "", "url": ""},
             {"title": "", "img_b64": "", "url": ""},
@@ -212,7 +180,6 @@ def load_anuncios() -> dict:
         data = json.loads(ANUNCIOS_FILE.read_text(encoding="utf-8"))
         for k, v in defaults.items():
             data.setdefault(k, v)
-        # normalizar 4 tarjetas
         cards = list(data.get("cards", []))
         while len(cards) < 4:
             cards.append({"title": "", "img_b64": "", "url": ""})
@@ -223,24 +190,20 @@ def load_anuncios() -> dict:
 
 
 PRODUCTS_PER_PAGE = 12
-PREVIEW_PER_CAT   = 5   # cuantas imagenes se muestran en la fila del home
+PREVIEW_PER_CAT   = 5
 
-# --- Paleta estilo Madison Center (azul rey + acento amarillo) ---
-COLOR_PRIMARY    = "#2A2A9C"   # azul rey fuerte de la barra superior
-COLOR_PRIMARY_2  = "#3838B8"   # azul intermedio
-COLOR_PRIMARY_3  = "#4B4BD9"   # azul brillante para gradientes
-COLOR_ACCENT     = "#F5B301"   # amarillo/dorado boton buscar
-COLOR_ACCENT_2   = "#FFC933"   # amarillo mas claro (hover)
-COLOR_BG_GRAY    = "#F4F5F7"   # gris muy suave de fondo pagina
+COLOR_PRIMARY    = "#2A2A9C"
+COLOR_PRIMARY_2  = "#3838B8"
+COLOR_PRIMARY_3  = "#4B4BD9"
+COLOR_ACCENT     = "#F5B301"
+COLOR_ACCENT_2   = "#FFC933"
+COLOR_BG_GRAY    = "#F4F5F7"
 COLOR_CARD       = "#FFFFFF"
 COLOR_TEXT       = "#0F172A"
 COLOR_MUTED      = "#64748B"
 COLOR_PRICE      = "#16A34A"
 
 
-# ----------------------------------------------------------
-# Logo (compatibilidad total con archivos previos)
-# ----------------------------------------------------------
 def _load_logo() -> Image.Image:
     if LOGO_FILE.exists():
         raw = base64.b64decode(LOGO_FILE.read_text().strip())
@@ -258,7 +221,6 @@ def get_logo_b64() -> str:
 
 
 def get_topbar_logo_b64() -> str:
-    """Logo para la barra azul: usa site_logo.png si existe, si no el logo.b64."""
     try:
         if CUSTOM_LOGO_FILE.exists():
             img = Image.open(CUSTOM_LOGO_FILE).convert("RGBA")
@@ -272,7 +234,6 @@ def get_topbar_logo_b64() -> str:
     except Exception:
         img = _load_logo()
 
-    # Recortar bounding box para que llene bien el espacio
     bbox = img.split()[-1].getbbox()
     if bbox:
         img = img.crop(bbox)
@@ -281,9 +242,6 @@ def get_topbar_logo_b64() -> str:
     return base64.b64encode(buf.getvalue()).decode()
 
 
-# ----------------------------------------------------------
-# Datos
-# ----------------------------------------------------------
 def load_products():
     if not DATA_FILE.exists():
         return []
@@ -314,9 +272,7 @@ def img_to_data_uri(rel_path: str) -> str:
         full = BASE_DIR / rel_path
         if full.exists():
             try:
-                return "data:image/png;base64," + base64.b64encode(
-                    full.read_bytes()
-                ).decode()
+                return "data:image/png;base64," + base64.b64encode(full.read_bytes()).decode()
             except Exception:
                 pass
     return (
@@ -329,9 +285,6 @@ def img_to_data_uri(rel_path: str) -> str:
     )
 
 
-# ----------------------------------------------------------
-# Iconos de categoria (emoji autodetectado por palabra clave)
-# ----------------------------------------------------------
 _CATEGORY_ICON_RULES = [
     (r"aliment|comida|mercado|abarrot|grocer", "🛒"),
     (r"bebid|refresco|jugo|agua|licor|vino|cerveza", "🥤"),
@@ -365,9 +318,6 @@ def icon_for_category(name: str, overrides: dict) -> str:
     return "🏷️"
 
 
-# ----------------------------------------------------------
-# Carrito (session_state)
-# ----------------------------------------------------------
 def _cart():
     if "cart" not in st.session_state:
         st.session_state.cart = _load_cart_file()
@@ -413,9 +363,6 @@ def cart_count():
     return sum(i["qty"] for i in _cart().values())
 
 
-# ----------------------------------------------------------
-# Config
-# ----------------------------------------------------------
 _settings = load_site_settings()
 _site_name = _settings.get("site_name", "Amazonia")
 _site_market = _settings.get("site_market", "MARKET")
@@ -426,8 +373,6 @@ st.set_page_config(
     layout="wide",
 )
 
-# Forzar que TODOS los enlaces internos naveguen en la MISMA pestaña
-# (rompen el iframe de Streamlit y reemplazan la ventana actual).
 st.markdown(
     """
     <base target="_top">
@@ -448,12 +393,10 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-
 logo_b64        = get_logo_b64()
 topbar_logo_b64 = get_topbar_logo_b64()
 category_icons  = load_category_icons()
 
-# --- Personalizacion visual (barra superior + botones) ---
 _tb_bg_color  = _settings.get("topbar_bg_color",  "#2A2A9C")
 _tb_bg_img_b64 = _settings.get("topbar_bg_image_b64", "").strip()
 try:    _tb_blur = max(0, min(20, int(float(_settings.get("topbar_bg_blur", "0")))))
@@ -474,7 +417,7 @@ _tiktok_url    = (_settings.get("social_tiktok_url",    "") or "").strip()
 _btn_cart_bg   = _settings.get("btn_cart_bg",   "rgba(255,255,255,.08)")
 _btn_cart_fg   = _settings.get("btn_cart_fg",   "#FFFFFF")
 _delivery_text = _settings.get("delivery_text", "🚚  Delivery GRATIS en toda la zona de Coro")
-# --- Fondo completo de la pagina web ---
+
 _pg_type   = _settings.get("page_bg_type", "color")
 _pg_color  = _settings.get("page_bg_color", "#F4F5F7")
 _pg_img    = _settings.get("page_bg_image_b64", "").strip()
@@ -493,16 +436,16 @@ except: _logo_offx_px = 0
 _logo_align = _settings.get("logo_align", "left")
 _titles    = load_titles()
 _cat_styles= load_category_styles()
-# --- Estilos por defecto de las secciones de apartado ---
+
 _sec_title_color = _settings.get("section_title_color", "#2A2A9C")
 try:    _sec_title_size = int(float(_settings.get("section_title_size", "22")))
 except: _sec_title_size = 22
 _sec_more_bg = _settings.get("section_more_bg", "#2A2A9C")
 _sec_more_fg = _settings.get("section_more_fg", "#FFFFFF")
-# --- Menu desplegable (aparece al hacer clic en el boton ☰) ---
+
 _menu_panel_bg = _settings.get("menu_panel_bg", "#2A2A9C")
 _menu_panel_fg = _settings.get("menu_panel_fg", "#FFFFFF")
-# --- Estilos del carrito ---
+
 _ct_pagebg = _settings.get("cart_page_bg",    "#EFF3FF")
 _ct_name  = _settings.get("cart_name_color",  "#2A2A9C")
 _ct_price = _settings.get("cart_price_color", "#0F172A")
@@ -517,22 +460,13 @@ _ct_addfg = _settings.get("cart_add_fg",      "#FFFFFF")
 _ct_delbg = _settings.get("cart_del_bg",      "#EF4444")
 _ct_delfg = _settings.get("cart_del_fg",      "#FFFFFF")
 
-# Altura aprox de la barra superior completa (banner + fila): usada para
-# pintar el fondo azul de forma continua detras de los widgets nativos de
-# Streamlit (que rompen el flujo de HTML).
 _TOPBAR_BAND_PX = 152
 
-
-# ==========================================================
-# CSS GLOBAL - estilo Madison Center
-# ==========================================================
 st.markdown(
     f"""
     <style>
-      /* --- Google Fonts para el nombre llamativo del sitio --- */
       @import url('https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@400;600;700;800;900&family=Montserrat:wght@400;700;900&family=Playfair+Display:wght@400;700;900&family=Bebas+Neue&family=Lobster&family=Oswald:wght@400;700&family=Roboto:wght@400;700;900&family=Dancing+Script:wght@400;700&family=Great+Vibes&family=Anton&family=Merriweather:wght@400;700&family=Raleway:wght@400;700;900&display=swap');
 
-      /* --- Fondo general limpio --- */
       .stApp {{
         {"background:" + f"url('data:image/png;base64,{_pg_img}') center/cover no-repeat fixed, {_pg_color};" if (_pg_type == "image" and _pg_img) else ("background-color:" + _pg_color + ";" if _pg_type != "none" else "")}
       }}
@@ -550,7 +484,6 @@ st.markdown(
         padding-right: 0 !important;
         max-width: 100% !important;
       }}
-      /* algunas versiones nuevas de Streamlit usan otro data-testid */
       [data-testid="stMainBlockContainer"],
       [data-testid="stAppViewBlockContainer"] {{
         padding-top: 0 !important;
@@ -559,19 +492,12 @@ st.markdown(
         max-width: 100% !important;
       }}
 
-      /* --- Wrapper interno con ancho controlado --- */
       .am-wrap {{
         max-width: 1280px;
         margin: 0 auto;
         padding: 0 24px;
       }}
 
-      /* ================= BARRA SUPERIOR AZUL ================= */
-      /* La topbar entera se renderiza como un st.container(key="am_topbar_v2").
-         Streamlit expone ese contenedor con la clase .st-key-am_topbar_v2, asi
-         que TODO lo que va dentro (banner + logo + busqueda + carrito) queda
-         visualmente DENTRO de la banda azul, sin importar donde lo pinte
-         Streamlit. */
       .st-key-am_topbar_v2 {{
         position: relative;
         width: 100vw !important;
@@ -587,11 +513,8 @@ st.markdown(
         border-radius: 0 !important;
         overflow: hidden;
       }}
-      /* Filtros (blur/brillo/saturacion) solo se aplican cuando hay imagen */
       {"" if not _tb_bg_img_b64 else f".st-key-am_topbar_v2::before {{ content:''; position:absolute; inset:0; background: inherit; filter: blur({_tb_blur}px) brightness({_tb_bri}%) saturate({_tb_sat}%); opacity:{_tb_op/100:.2f}; pointer-events:none; z-index:0; }} .st-key-am_topbar_v2 > * {{ position: relative; z-index: 1; }}"}
-      /* que los labels/inputs internos hereden buen contraste sobre azul */
       .st-key-am_topbar_v2 label, .st-key-am_topbar_v2 p {{ color: #fff !important; }}
-      /* Banner de delivery */
       .am-delivery-banner {{
         text-align: center;
         font-weight: 700;
@@ -621,7 +544,6 @@ st.markdown(
         filter: drop-shadow(0 2px 4px rgba(0,0,0,.35));
       }}
 
-      /* --- Botones utilitarios de la topbar (menu, cuenta, loyalty, cart) --- */
       .am-tb-item {{
         display: inline-flex; align-items: center; gap: 10px;
         background: rgba(255,255,255,.08);
@@ -647,7 +569,6 @@ st.markdown(
         display:block; font-size:14px; font-weight:800; letter-spacing:.3px;
       }}
 
-      /* Boton-icono del carrito (sin texto) */
       .am-cart-btn {{
         position: relative;
         display: inline-flex; align-items: center; justify-content: center;
@@ -673,15 +594,7 @@ st.markdown(
         padding: 0 6px; box-shadow: 0 2px 6px rgba(0,0,0,.35);
         border: 2px solid #fff;
       }}
-      .am-loyalty-medal {{
-        width: 26px; height: 26px; border-radius: 50%;
-        background: {COLOR_ACCENT};
-        display:inline-flex; align-items:center; justify-content:center;
-        color: #7A5A00; font-weight: 900; font-size: 14px;
-        box-shadow: 0 2px 6px rgba(0,0,0,.35);
-      }}
 
-      /* ================= FILA DE CATEGORIAS (CIRCULOS) ================= */
       .am-cats-wrap {{
         background: #fff;
         border-bottom: 1px solid #E5E7EB;
@@ -722,37 +635,6 @@ st.markdown(
         color: {COLOR_TEXT}; max-width: 130px; line-height: 1.2;
       }}
 
-      /* ================= SECCION DE APARTADO EN HOME ================= */
-      .am-section {{
-        background: #fff;
-        border: 1px solid #E5E7EB;
-        border-radius: 18px;
-        padding: 22px 24px 18px 24px;
-        margin-bottom: 26px;
-        box-shadow: 0 6px 18px rgba(15,23,42,.06);
-      }}
-      .am-section-head {{
-        display:flex; align-items:center; justify-content:space-between;
-        margin-bottom: 16px; gap: 12px;
-      }}
-      .am-section-title-h {{
-        font-family: 'Poppins', sans-serif;
-        color: {COLOR_PRIMARY};
-        font-size: 22px; font-weight: 800;
-        display: inline-flex; align-items: center; gap: 10px;
-        text-transform: capitalize;
-      }}
-      .am-section-title-h .dot {{
-        width: 10px; height: 10px; border-radius: 50%;
-        background: {COLOR_ACCENT};
-      }}
-      .am-section-empty {{
-        color: {COLOR_MUTED}; text-align: center; padding: 24px;
-        border: 1px dashed #E2E8F0; border-radius: 12px;
-      }}
-
-      /* Mini tarjeta de producto (preview del home) */
-      /* ================= TARJETAS HOME EN FILAS DE 4 ================= */
       .am-tiles-row {{
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -820,21 +702,6 @@ st.markdown(
         .am-tile-title {{ font-size: 15px; }}
       }}
 
-      /* ================= CUADRO 2x2 (HOME - vista de apartado) ================= */
-      .am-quad-link {{ text-decoration: none !important; display:block; }}
-      .am-quad-card {{
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 14px;
-        padding: 14px;
-        box-shadow: 0 2px 10px rgba(0,0,0,.06);
-        transition: transform .15s ease, box-shadow .15s ease;
-        max-width: 520px;
-      }}
-      .am-quad-card:hover {{
-        transform: translateY(-2px);
-        box-shadow: 0 8px 22px rgba(0,0,0,.10);
-      }}
       .am-quad-grid {{
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -878,44 +745,7 @@ st.markdown(
         -webkit-box-orient: vertical;
         overflow: hidden;
       }}
-      @media (max-width: 640px) {{
-        .am-quad-card {{ padding: 10px; }}
-        .am-quad-imgwrap {{ height: 68px; }}
-        .am-quad-imgwrap img {{ max-height: 68px; }}
-        .am-quad-name {{ font-size: 11px; min-height: 24px; }}
-      }}
 
-      .am-mini {{{{
-        background: #fff;
-        border: 1px solid #EEF0F4;
-        border-radius: 14px;
-        padding: 10px 8px 12px 8px;
-        text-align: center;
-        transition: transform .12s ease, box-shadow .12s ease;
-      }}}}
-      .am-mini:hover {{{{
-        transform: translateY(-3px);
-        box-shadow: 0 10px 20px rgba(15,23,42,.10);
-      }}}}
-      .am-mini img {{{{
-        width: 100%; aspect-ratio: 1/1; object-fit: contain;
-        border-radius: 10px; background: #F8FAFC;
-        max-height: 130px;
-      }}}}
-      .am-mini .name {{{{
-        font-size: 12px; color: {{COLOR_TEXT}}; font-weight: 600;
-        margin: 8px 4px 4px 4px; line-height: 1.2;
-        min-height: 30px;
-        display: -webkit-box; -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical; overflow: hidden;
-      }}}}
-      .am-mini .price {{{{
-        display:inline-block; background: {{COLOR_PRICE}}; color:#fff;
-        font-weight: 800; font-size: 12px;
-        padding: 3px 10px; border-radius: 8px;
-      }}}}
-
-      /* ================= TARJETAS DE PRODUCTO (vista apartado) ================= */
       .am-card {{
         background: {COLOR_CARD};
         border-radius: 16px; padding: 14px 12px 12px 12px;
@@ -950,7 +780,6 @@ st.markdown(
         background:#fff; border-radius:16px; border:1px dashed #e5e7eb;
       }}
 
-      /* ---- Botones de Streamlit ---- */
       div[data-testid="stButton"] > button {{
         background: linear-gradient(135deg, {COLOR_PRIMARY} 0%, {COLOR_PRIMARY_3} 100%);
         color: #fff !important;
@@ -968,7 +797,7 @@ st.markdown(
         box-shadow: 0 8px 18px rgba(42,42,156,.35) !important;
         filter: brightness(1.05);
       }}
-      /* Botones de la topbar identificados por su key de Streamlit */
+
       .st-key-btn_menu button, .st-key-btn_menu button:hover {{
         background: {_btn_menu_bg} !important;
         color: {_btn_menu_fg} !important;
@@ -985,29 +814,7 @@ st.markdown(
         background: #EF4444 !important;
         box-shadow: 0 6px 14px rgba(239,68,68,.35) !important;
       }}
-      div[data-testid="stButton"] > button[kind="primary"]:hover {{
-        background: #DC2626 !important;
-      }}
-      /* Boton "Ver mas" chico y amarillo */
-      div[data-testid="stButton"] > button.am-more,
-      button[data-am-more="1"] {{
-        background: {COLOR_ACCENT} !important;
-        color: #0F172A !important;
-        min-height: 36px !important;
-        padding: 6px 14px !important;
-        font-size: 13px !important;
-      }}
-      /* Los <a> "Ver más" de cada apartado usan color inline; forzamos que
-         herede desde su propio span y no de la hoja de Streamlit. */
-      [data-testid="stMarkdownContainer"] a > span {{
-        color: inherit;
-      }}
-      .am-menu-panel a, .am-menu-panel a:visited, .am-menu-panel a:hover {{
-        color: {_menu_panel_fg} !important;
-        text-decoration: none !important;
-      }}
 
-      /* Search input estilo Madison */
       div[data-testid="stTextInput"] > div > div > input {{
         background: #fff !important;
         color: #000 !important;
@@ -1023,7 +830,6 @@ st.markdown(
         opacity: 1 !important;
       }}
 
-      /* Modal cantidad */
       .am-modal-img {{
         display:block; margin: 0 auto 10px auto;
         max-height: 160px; width:auto;
@@ -1038,284 +844,13 @@ st.markdown(
         text-align:center; color:{COLOR_PRICE}; font-weight:800;
         font-size:20px; margin-bottom: 14px;
       }}
-
-      /* ================= RESPONSIVE (TELEFONO / TABLET) ================= */
-      /* Tablet */
-      @media (max-width: 980px) {{
-        .am-wrap {{ padding: 0 16px; }}
-        .am-section {{ padding: 18px 16px 16px 16px; }}
-        .am-section-title-h {{ font-size: 20px; }}
-      }}
-
-      /* Telefono - Layout compacto tipo Madison Center */
-      @media (max-width: 780px) {{
-        /* --- Topbar compacta --- */
-        .st-key-am_topbar_v2 {{
-          padding: 6px 10px 14px 10px !important;
-          margin-bottom: 10px !important;
-        }}
-        .am-delivery-banner {{
-          font-size: 12px; padding: 8px 10px;
-          margin: 0 -10px 12px -10px;
-          line-height: 1.35;
-        }}
-
-        /* Forzamos SIEMPRE fila horizontal (Streamlit apila columnas en mobile) */
-        .st-key-am_topbar_v2 [data-testid="stHorizontalBlock"],
-        .st-key-am_topbar_v2 [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] {{
-          display: flex !important;
-          flex-direction: row !important;
-          flex-wrap: wrap !important;
-          gap: 8px !important;
-          align-items: center !important;
-          row-gap: 12px !important;
-        }}
-        .st-key-am_topbar_v2 [data-testid="stColumn"] {{
-          min-width: 0 !important;
-          display: flex !important;
-          justify-content: center !important;
-          align-items: center !important;
-          flex-direction: row !important;
-        }}
-        /* Fila 1: Menu | Logo (centro) | Cuenta | Carrito - todos en la MISMA fila */
-        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(1) {{ order: 1; flex: 0 0 46px !important; width: 46px !important; }}
-        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(2) {{ order: 2; flex: 1 1 0 !important; width: auto !important; min-width: 0 !important; }}
-        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(5) {{ order: 3; flex: 0 0 46px !important; width: 46px !important; }}
-        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(7) {{ order: 4; flex: 0 0 46px !important; width: 46px !important; }}
-        /* Fila 2: input + lupa (100% de ancho) */
-        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(3) {{ order: 5; flex: 1 1 calc(100% - 60px) !important; width: auto !important; margin-top: 6px !important; }}
-        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(4) {{ order: 6; flex: 0 0 52px !important; width: 52px !important; margin-top: 6px !important; }}
-        /* Redes sociales ocultas en mobile */
-        .st-key-am_topbar_v2 [data-testid="stColumn"]:nth-child(6) {{ display: none !important; }}
-
-        /* Menu: solo icono */
-        .st-key-btn_menu button {{
-          width: 46px !important; min-width: 46px !important;
-          height: 46px !important; min-height: 46px !important;
-          padding: 0 !important; border-radius: 12px !important;
-          font-size: 0 !important; line-height: 0 !important;
-          color: transparent !important;
-          position: relative; overflow: hidden;
-        }}
-        .st-key-btn_menu button > * {{ font-size: 0 !important; color: transparent !important; }}
-        .st-key-btn_menu button::before {{
-          content: "\\2630"; color: #fff; font-size: 24px; line-height: 1; font-weight: 900;
-          position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-        }}
-
-        /* Logo mas grande y con aire arriba/abajo, separado del buscador */
-        .am-brand {{
-          justify-content: center; gap: 6px; text-align: center;
-          width: 100%; padding: 8px 0 6px 0;
-        }}
-        .am-brand-name {{ font-size: 22px; }}
-        .am-brand-market {{ font-size: 10px; letter-spacing: 2px; }}
-        .am-brand-logo {{
-          height: 72px !important;
-          margin-left: 0 !important;
-          margin-bottom: 4px !important;
-          margin-top: 4px !important;
-        }}
-
-        /* Buscador */
-        div[data-testid="stTextInput"] > div > div > input {{
-          height: 44px !important;
-          font-size: 16px !important;
-          border-radius: 10px 0 0 10px !important;
-          padding: 0 12px !important;
-        }}
-        .st-key-btn_search button {{
-          width: 100% !important;
-          height: 44px !important;
-          min-height: 44px !important;
-          border-radius: 0 10px 10px 0 !important;
-          font-size: 20px !important;
-          padding: 0 !important;
-        }}
-
-        /* Iconos de cuenta y carrito: silueta blanca via SVG, mismo tamano que menu */
-        .am-tb-item {{
-          width: 46px !important; height: 46px !important;
-          display: flex !important; justify-content: center !important; align-items: center !important;
-          padding: 0 !important; font-size: 0 !important; color: transparent !important;
-          border-radius: 12px; position: relative; overflow: hidden;
-        }}
-        .am-tb-item * {{ font-size: 0 !important; color: transparent !important; display: none !important; }}
-        .am-tb-item::before {{
-          content: "";
-          position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-          width: 26px; height: 26px;
-          background-color: #fff;
-          -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-4 0-8 2-8 6v1h16v-1c0-4-4-6-8-6z'/></svg>") no-repeat center / contain;
-                  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-4 0-8 2-8 6v1h16v-1c0-4-4-6-8-6z'/></svg>") no-repeat center / contain;
-        }}
-
-        .am-cart-btn {{
-          width: 46px !important; min-width: 46px !important;
-          height: 46px !important; padding: 0 !important;
-          border-radius: 12px !important;
-          font-size: 0 !important; color: transparent !important;
-          position: relative; overflow: visible;
-          display: flex !important; align-items: center !important; justify-content: center !important;
-        }}
-        .am-cart-btn * {{ font-size: 0 !important; color: transparent !important; }}
-        .am-cart-btn::before {{
-          content: "";
-          position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-          width: 26px; height: 26px;
-          background-color: #fff;
-          -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M7 4h-2l-1 2v1h2l3 8-1 2a2 2 0 0 0 2 3h11v-2h-11l1-2h8l3-6h-14l-1-3zm2 15a2 2 0 1 0 2 2 2 2 0 0 0-2-2zm10 0a2 2 0 1 0 2 2 2 2 0 0 0-2-2z'/></svg>") no-repeat center / contain;
-                  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M7 4h-2l-1 2v1h2l3 8-1 2a2 2 0 0 0 2 3h11v-2h-11l1-2h8l3-6h-14l-1-3zm2 15a2 2 0 1 0 2 2 2 2 0 0 0-2-2zm10 0a2 2 0 1 0 2 2 2 2 0 0 0-2-2z'/></svg>") no-repeat center / contain;
-        }}
-        .am-cart-badge {{
-          min-width: 16px; height: 16px; font-size: 10px;
-          top: -4px !important; right: -4px !important;
-        }}
-
-        /* ================= HOME: PREVIEW DE APARTADOS ================= */
-        /* Productos preview: 2 por fila, uno al lado del otro (como los circulos) */
-        .am-section > [data-testid="stHorizontalBlock"],
-        .am-section [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] {{
-          display: flex !important;
-          flex-direction: row !important;
-          flex-wrap: nowrap !important;
-          overflow-x: auto !important;
-          overflow-y: hidden !important;
-          gap: 8px !important;
-          scroll-snap-type: x mandatory !important;
-          -webkit-overflow-scrolling: touch !important;
-          padding-bottom: 4px !important;
-        }}
-        .am-section > [data-testid="stHorizontalBlock"]::-webkit-scrollbar {{ display: none; }}
-        .am-section > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"],
-        .am-section [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{
-          flex: 0 0 calc(25% - 6px) !important;
-          min-width: calc(25% - 6px) !important;
-          width: calc(25% - 6px) !important;
-          scroll-snap-align: start !important;
-        }}
-        /* Excepcion: la cabecera (titulo + Ver mas) mantiene fila normal */
-        .am-section > [data-testid="stHorizontalBlock"]:has(.am-section-title-h) {{
-          flex-wrap: wrap !important;
-          overflow: visible !important;
-          flex-direction: row !important;
-        }}
-        .am-section > [data-testid="stHorizontalBlock"]:has(.am-section-title-h) > [data-testid="stColumn"] {{
-          flex: 1 1 auto !important;
-          min-width: 0 !important;
-          width: auto !important;
-        }}
-
-        /* ================= CATEGORIAS (circulos) ================= */
-        .am-cats-wrap {{ padding: 4px 0 6px 0; margin-bottom: 4px; }}
-        .am-cats-scroll {{ gap: 10px; padding: 0 12px; }}
-        .am-cat-circle {{ min-width: 68px; gap: 6px; }}
-        .am-cat-circle .bubble {{ width: 64px; height: 64px; font-size: 28px; }}
-        .am-cat-circle .label {{ font-size: 12px; max-width: 78px; font-weight: 700; }}
-
-        /* ================= SECCIONES ================= */
-        .am-wrap {{ padding: 0 12px; }}
-        .am-section {{
-          padding: 14px 12px 12px 12px;
-          margin-bottom: 16px;
-          border-radius: 14px;
-        }}
-        .am-section-head {{
-          flex-direction: row; align-items: center;
-          justify-content: space-between; gap: 8px; margin-bottom: 12px;
-        }}
-        .am-section-title-h {{ font-size: 17px; gap: 6px; }}
-
-        /* Mini card en preview horizontal (4 por fila, estilo Madison) */
-        .am-mini {{ padding: 5px 4px 7px 4px; }}
-        .am-mini img {{ max-height: 74px; }}
-        .am-mini .name {{ font-size: 10.5px; min-height: 26px; margin: 4px 1px 2px 1px; line-height: 1.15; }}
-        .am-mini .price {{ font-size: 10.5px; padding: 2px 7px; }}
-
-        /* ================= VISTA "VER MAS" (2 POR FILA, IGUAL QUE EL HOME) ================= */
-        .am-plist [data-testid="stHorizontalBlock"] {{
-          display: flex !important;
-          flex-direction: row !important;
-          flex-wrap: wrap !important;
-          gap: 8px !important;
-          row-gap: 10px !important;
-        }}
-        .am-plist [data-testid="stColumn"] {{
-          flex: 0 0 calc(50% - 4px) !important;
-          width: calc(50% - 4px) !important;
-          min-width: 0 !important;
-          display: block !important;
-        }}
-        /* Tarjeta vertical compacta */
-        .am-plist .am-card {{
-          display: block !important;
-          text-align: center !important;
-          padding: 8px 6px 10px 6px !important;
-          margin-bottom: 4px !important;
-        }}
-        .am-plist .am-card img {{
-          width: 100% !important;
-          max-height: 100px !important;
-          height: auto !important;
-          margin: 0 auto 6px auto !important;
-          object-fit: contain !important;
-        }}
-        .am-plist .am-card .am-name {{
-          margin: 4px 2px 4px 2px !important;
-          min-height: 32px !important;
-          font-size: 12px !important;
-          font-weight: 700 !important;
-          line-height: 1.25 !important;
-          text-align: center !important;
-        }}
-        .am-plist .am-card .am-price {{
-          font-size: 12px !important;
-          padding: 3px 8px !important;
-          margin: 2px auto !important;
-          display: inline-block !important;
-        }}
-        .am-plist .am-card-gap {{ display: none !important; }}
-        .am-plist div[data-testid="stButton"] > button {{
-          min-height: 36px !important;
-          font-size: 12px !important;
-          padding: 6px 8px !important;
-          margin-top: 2px !important;
-          margin-bottom: 8px !important;
-        }}
-
-        div[data-testid="stButton"] > button {{
-          min-height: 42px !important;
-          font-size: 13.5px !important;
-        }}
-      }}
-
-      /* Telefonos angostos */
-      @media (max-width: 420px) {{
-        .am-wrap {{ padding: 0 10px; }}
-        .am-brand-name {{ font-size: 20px; }}
-        .am-brand-logo {{ height: 64px !important; }}
-        .am-cat-circle .bubble {{ width: 58px; height: 58px; font-size: 26px; }}
-        .am-cat-circle {{ min-width: 62px; }}
-        .am-cat-circle .label {{ font-size: 11.5px; max-width: 72px; }}
-        .am-section-title-h {{ font-size: 16px; }}
-        .am-section > [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{
-          flex: 0 0 calc(25% - 6px) !important; min-width: calc(25% - 6px) !important; width: calc(25% - 6px) !important;
-        }}
-        .am-mini img {{ max-height: 66px; }}
-        .am-mini .name {{ font-size: 10px; min-height: 24px; }}
-        .am-mini .price {{ font-size: 10px; padding: 2px 6px; }}
-        .am-plist .am-card {{ grid-template-columns: 68px 1fr auto !important; }}
-        .am-plist .am-card img {{ width: 68px !important; height: 68px !important; max-height: 68px !important; }}
-      }}
     </style>
     """,
     unsafe_allow_html=True,
 )
 
 
-# ==========================================================
-# ROUTER (?view=..., ?cat=..., ?q=...)
-# ==========================================================
+# --- ROUTER ---
 try:
     qp = st.query_params
     current_cat = qp.get("cat", None)
@@ -1332,7 +867,6 @@ except Exception:
 
 
 def _nav(view=None, cat=None, q=None):
-    """Cambia la vista SIN recargar la pagina (conserva el carrito)."""
     try:
         st.query_params.clear()
         if view: st.query_params["view"] = view
@@ -1355,21 +889,15 @@ for c in present:
         categories.append(c)
 
 
-# ==========================================================
-# BARRA SUPERIOR AZUL (Delivery + Topbar)
-# ==========================================================
+# --- HEADER & TOPBAR ---
 n_cart = cart_count()
 
-# TODO EL HEADER va DENTRO de este contenedor -> queda dentro de la banda azul.
 with st.container(key="am_topbar_v2"):
-    # 1) Banner de delivery arriba de todo, dentro de la banda azul.
     st.markdown(
         f'<div class="am-delivery-banner">{_delivery_text}</div>',
         unsafe_allow_html=True,
     )
 
-    # 2) Fila funcional: [Menu] [Logo/Brand] [Search input] [Search btn]
-    #    [Mi cuenta] [Loyalty] [Carrito(icono)]
     c_menu, c_logo, c_search, c_btn, c_acc, c_social, c_cart = st.columns(
         [1.1, 2.3, 4.2, 0.9, 1.9, 1.7, 0.9], vertical_alignment="center"
     )
@@ -1380,23 +908,17 @@ with st.container(key="am_topbar_v2"):
             st.rerun()
 
     with c_logo:
-        # Titulos configurables: si el usuario los definio, se usan; si no,
-        # se cae en site_name/site_market como antes.
         if _hide_titles:
             blocks = []
         else:
             blocks = _titles if _titles else [
-                {"text": _site_name,   "font": "Pacifico", "size": 30,
-                 "color": "#FFFFFF",   "weight": "400"},
-                {"text": _site_market, "font": "Poppins",  "size": 16,
-                 "color": _settings.get("btn_search_bg", COLOR_ACCENT),
-                 "weight": "900"},
+                {"text": _site_name,   "font": "Pacifico", "size": 30, "color": "#FFFFFF", "weight": "400"},
+                {"text": _site_market, "font": "Poppins",  "size": 16, "color": _settings.get("btn_search_bg", COLOR_ACCENT), "weight": "900"},
             ]
         titles_html = "".join(
             f'<div style="font-family:\'{b["text"] and b["font"] or "Poppins"}\', sans-serif;'
             f'font-size:{b["size"]}px;color:{b["color"]};font-weight:{b["weight"]};'
-            f'line-height:1.1;text-shadow:0 2px 6px rgba(0,0,0,.35);'
-            f'letter-spacing:{"3px" if int(b["weight"] or 400) >= 800 and b["size"] < 22 else "0"};">{b["text"]}</div>'
+            f'line-height:1.1;text-shadow:0 2px 6px rgba(0,0,0,.35);">{b["text"]}</div>'
             for b in blocks if b.get("text")
         )
         logo_html = ("" if _hide_logo else
@@ -1404,7 +926,6 @@ with st.container(key="am_topbar_v2"):
         st.markdown(
             f"""
             <a href="?" class="am-brand" target="_top" style="text-decoration:none;">
-
               {logo_html}
               <div>{titles_html}</div>
             </a>
@@ -1443,96 +964,25 @@ with st.container(key="am_topbar_v2"):
         )
 
     with c_social:
-        # SVGs oficiales (Simple Icons, licencia CC0) para que se vean nítidos
-        _svg_facebook = (
-            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" '
-            'width="22" height="22" fill="#ffffff" aria-hidden="true">'
-            '<path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 '
-            '1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 '
-            '1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0 '
-            '-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622'
-            'c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564'
-            'h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12'
-            '-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z"/></svg>'
-        )
-        _svg_instagram = (
-            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" '
-            'width="20" height="20" fill="#ffffff" aria-hidden="true">'
-            '<path d="M12 2.163c3.204 0 3.584.012 4.849.07 1.366.062 2.633.336 '
-            '3.608 1.311.975.975 1.249 2.242 1.311 3.608.058 1.265.069 1.645.069 '
-            '4.849 0 3.205-.012 3.584-.069 4.849-.062 1.366-.336 2.633-1.311 '
-            '3.608-.975.975-2.242 1.249-3.608 1.311-1.265.058-1.645.07-4.849.07'
-            '-3.205 0-3.584-.012-4.849-.07-1.366-.062-2.633-.336-3.608-1.311'
-            '-.975-.975-1.249-2.242-1.311-3.608C2.175 15.647 2.163 15.268 '
-            '2.163 12s.012-3.584.07-4.849c.062-1.366.336-2.633 1.311-3.608'
-            '.975-.975 2.242-1.249 3.608-1.311C8.416 2.175 8.796 2.163 12 2.163'
-            'zm0 1.802c-3.148 0-3.523.011-4.767.068-1.006.046-1.554.213-1.918.353'
-            '-.482.187-.827.41-1.188.771-.361.361-.584.706-.771 1.188-.14.364'
-            '-.307.912-.353 1.918C2.976 8.477 2.965 8.852 2.965 12s.011 3.523.068 '
-            '4.767c.046 1.006.213 1.554.353 1.918.187.482.41.827.771 1.188.361.361 '
-            '.706.584 1.188.771.364.14.912.307 1.918.353 1.244.057 1.619.068 '
-            '4.767.068s3.523-.011 4.767-.068c1.006-.046 1.554-.213 1.918-.353'
-            '.482-.187.827-.41 1.188-.771.361-.361.584-.706.771-1.188.14-.364'
-            '.307-.912.353-1.918.057-1.244.068-1.619.068-4.767s-.011-3.523-.068'
-            '-4.767c-.046-1.006-.213-1.554-.353-1.918-.187-.482-.41-.827-.771'
-            '-1.188-.361-.361-.706-.584-1.188-.771-.364-.14-.912-.307-1.918-.353'
-            'C15.523 3.976 15.148 3.965 12 3.965zm0 3.063A4.972 4.972 0 1 1 12 '
-            '16.972 4.972 4.972 0 0 1 12 7.028zm0 8.203A3.231 3.231 0 1 0 12 '
-            '8.769a3.231 3.231 0 0 0 0 6.462zm5.171-8.406a1.163 1.163 0 1 1-2.326 '
-            '0 1.163 1.163 0 0 1 2.326 0z"/></svg>'
-        )
-        _svg_tiktok = (
-            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" '
-            'width="20" height="20" fill="#ffffff" aria-hidden="true">'
-            '<path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 '
-            '2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13'
-            'V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5.8 20.1a6.34 6.34 0 0 0 '
-            '10.86-4.43V8.66a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1.84 '
-            '-.09z"/></svg>'
-        )
+        _svg_facebook = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="#ffffff"><path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0 -.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z"/></svg>'
+        _svg_instagram = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M12 2.163c3.204 0 3.584.012 4.849.07 1.366.062 2.633.336 3.608 1.311.975.975 1.249 2.242 1.311 3.608.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.062 1.366-.336 2.633-1.311 3.608-.975.975-2.242 1.249-3.608 1.311-1.265.058-1.645.07-4.849.07-3.205 0-3.584-.012-4.849-.07-1.366-.062-2.633-.336-3.608-1.311-.975-.975-1.249-2.242-1.311-3.608C2.175 15.647 2.163 15.268 2.163 12s.012-3.584.07-4.849c.062-1.366.336-2.633 1.311-3.608.975-.975 2.242-1.249 3.608-1.311C8.416 2.175 8.796 2.163 12 2.163zm0 1.802c-3.148 0-3.523.011-4.767.068-1.006.046-1.554.213-1.918.353-.482.187-.827.41-1.188.771-.361.361-.584.706-.771 1.188-.14.364-.307.912-.353 1.918C2.976 8.477 2.965 8.852 2.965 12s.011 3.523.068 4.767c.046 1.006.213 1.554.353 1.918.187.482.41.827.771 1.188.361.361.706.584 1.188.771.364.14.912.307 1.918.353 1.244.057 1.619.068 4.767.068s3.523-.011 4.767-.068c1.006-.046 1.554-.213 1.918-.353.482-.187.827-.41 1.188-.771.361-.361.584-.706.771-1.188.14-.364.307-.912.353-1.918.057-1.244.068-1.619.068-4.767s-.011-3.523-.068-4.767c-.046-1.006-.213-1.554-.353-1.918-.187-.482-.41-.827-.771-1.188-.361-.361-.706-.584-1.188-.771-.364-.14-.912-.307-1.918-.353C15.523 3.976 15.148 3.965 12 3.965zm0 3.063A4.972 4.972 0 1 1 12 16.972 4.972 4.972 0 0 1 12 7.028zm0 8.203A3.231 3.231 0 1 0 12 8.769a3.231 3.231 0 0 0 0 6.462zm5.171-8.406a1.163 1.163 0 1 1-2.326 0 1.163 1.163 0 0 1 2.326 0z"/></svg>'
+        _svg_tiktok = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="#ffffff"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5.8 20.1a6.34 6.34 0 0 0 10.86-4.43V8.66a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1.84 -.09z"/></svg>'
         _social_items = []
-        _btn_base = (
-            "display:inline-flex;align-items:center;justify-content:center;"
-            "width:38px;height:38px;margin:0 4px;text-decoration:none;"
-            "box-shadow:0 2px 6px rgba(0,0,0,.25);"
-        )
+        _btn_base = "display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;margin:0 4px;text-decoration:none;box-shadow:0 2px 6px rgba(0,0,0,.25);"
         if _facebook_url:
-            _social_items.append(
-                f'<a href="{_facebook_url}" target="_blank" rel="noopener" '
-                f'title="Facebook" aria-label="Facebook" '
-                f'style="{_btn_base}border-radius:50%;background:#1877F2;">'
-                f'{_svg_facebook}</a>'
-            )
+            _social_items.append(f'<a href="{_facebook_url}" target="_blank" rel="noopener" title="Facebook" style="{_btn_base}border-radius:50%;background:#1877F2;">{_svg_facebook}</a>')
         if _instagram_url:
-            _social_items.append(
-                f'<a href="{_instagram_url}" target="_blank" rel="noopener" '
-                f'title="Instagram" aria-label="Instagram" '
-                f'style="{_btn_base}border-radius:10px;'
-                f'background:radial-gradient(circle at 30% 110%,#FEDA75 0%,'
-                f'#FA7E1E 25%,#D62976 50%,#962FBF 75%,#4F5BD5 100%);">'
-                f'{_svg_instagram}</a>'
-            )
+            _social_items.append(f'<a href="{_instagram_url}" target="_blank" rel="noopener" title="Instagram" style="{_btn_base}border-radius:10px;background:radial-gradient(circle at 30% 110%,#FEDA75 0%,#FA7E1E 25%,#D62976 50%,#962FBF 75%,#4F5BD5 100%);">{_svg_instagram}</a>')
         if _tiktok_url:
-            _social_items.append(
-                f'<a href="{_tiktok_url}" target="_blank" rel="noopener" '
-                f'title="TikTok" aria-label="TikTok" '
-                f'style="{_btn_base}border-radius:50%;background:#000;">'
-                f'{_svg_tiktok}</a>'
-            )
-        st.markdown(
-            '<div style="display:flex;align-items:center;justify-content:center;gap:2px;">'
-            + "".join(_social_items) +
-            '</div>',
-            unsafe_allow_html=True,
-        )
+            _social_items.append(f'<a href="{_tiktok_url}" target="_blank" rel="noopener" title="TikTok" style="{_btn_base}border-radius:50%;background:#000;">{_svg_tiktok}</a>')
+        st.markdown('<div style="display:flex;align-items:center;justify-content:center;gap:2px;">' + "".join(_social_items) + '</div>', unsafe_allow_html=True)
 
     with c_cart:
-        _badge = (f"<span class='am-cart-badge'>{n_cart}</span>" if n_cart else "")
+        _badge = f"<span class='am-cart-badge'>{n_cart}</span>" if n_cart else ""
         st.markdown(
             f"""
             <div style="display:flex; justify-content:center;">
-              <a class="am-cart-btn" href="?view=cart" title="Ver carrito"
-                 <a href="?view=cart" class="tu-clase" aria-label="Ver carrito" target="_top">
+              <a class="am-cart-btn" href="?view=cart" target="_top" aria-label="Ver carrito">
                 🛒{_badge}
               </a>
             </div>
@@ -1540,29 +990,17 @@ with st.container(key="am_topbar_v2"):
             unsafe_allow_html=True,
         )
 
-
-# ---------- Panel desplegable del menu (al lado izquierdo) ----------
+# Panel desplegable Menu
 if st.session_state.get("menu_open", False):
     _items_html = "".join(
-        f'<a href="?cat={c}" target="_top" onclick="try{{window.top.location.href=\'?cat={c}\';}}catch(e){{window.location.href=\'?cat={c}\';}}return false;" '
-        f'style="display:block;padding:12px 18px;border-bottom:1px solid rgba(255,255,255,.15);'
-        f'font-family:Poppins,sans-serif;font-weight:600;font-size:14px;">'
-        f'{c.capitalize()}</a>'
+        f'<a href="?cat={c}" target="_top" style="display:block;padding:12px 18px;border-bottom:1px solid rgba(255,255,255,.15);font-family:Poppins,sans-serif;font-weight:600;font-size:14px;">{c.capitalize()}</a>'
         for c in categories
-    ) or (
-        '<div style="padding:14px 18px;opacity:.85;font-size:13px;">'
-        'Aún no hay apartados.</div>'
-    )
+    ) or '<div style="padding:14px 18px;opacity:.85;font-size:13px;">Aún no hay apartados.</div>'
+    
     st.markdown(
         f'''
-        <div class="am-menu-panel" style="
-            position:relative;max-width:280px;margin:8px 0 12px 12px;
-            background:{_menu_panel_bg};color:{_menu_panel_fg};
-            border-radius:14px;box-shadow:0 10px 24px rgba(0,0,0,.22);
-            overflow:hidden;">
-          <div style="padding:10px 18px;font-weight:800;font-size:13px;
-                      letter-spacing:1px;text-transform:uppercase;opacity:.85;
-                      border-bottom:1px solid rgba(255,255,255,.2);">
+        <div class="am-menu-panel" style="position:relative;max-width:280px;margin:8px 0 12px 12px;background:{_menu_panel_bg};color:{_menu_panel_fg};border-radius:14px;box-shadow:0 10px 24px rgba(0,0,0,.22);overflow:hidden;">
+          <div style="padding:10px 18px;font-weight:800;font-size:13px;letter-spacing:1px;text-transform:uppercase;opacity:.85;border-bottom:1px solid rgba(255,255,255,.2);">
             Apartados
           </div>
           {_items_html}
@@ -1571,28 +1009,16 @@ if st.session_state.get("menu_open", False):
         unsafe_allow_html=True,
     )
 
-
-
-
-
-# ==========================================================
-# FILA DE CATEGORIAS (CIRCULOS) - navegacion rapida a apartados
-# ==========================================================
+# --- CIRCULOS CATEGORIAS ---
 if categories:
     circles_html = ['<div class="am-cats-wrap"><div class="am-cats-scroll">']
     for cat in categories:
         stl = get_cat_style(cat, _cat_styles)
         icon = stl["icon"] or icon_for_category(cat, category_icons)
-        sz   = stl["circle_size"]
-        cc   = stl["circle_color"]
-        lc   = stl["label_color"]
-        ls   = stl["label_size"]
+        sz, cc, lc, ls = stl["circle_size"], stl["circle_color"], stl["label_color"], stl["label_size"]
         circles_html.append(
-            f'<a class="am-cat-circle" href="?cat={cat}" target="_top" onclick="try{{window.top.location.href=\'?cat={cat}\';}}catch(e){{window.location.href=\'?cat={cat}\';}}return false;" style="min-width:{max(sz+20,80)}px;">'
-
-            f'  <div class="bubble" style="width:{sz}px;height:{sz}px;'
-            f'background: radial-gradient(circle at 30% 30%, color-mix(in srgb, {cc} 78%, white) 0%, {cc} 78%);'
-            f'font-size:{int(sz*0.46)}px;">{icon}</div>'
+            f'<a class="am-cat-circle" href="?cat={cat}" target="_top" style="min-width:{max(sz+20,80)}px;">'
+            f'  <div class="bubble" style="width:{sz}px;height:{sz}px;background: radial-gradient(circle at 30% 30%, color-mix(in srgb, {cc} 78%, white) 0%, {cc} 78%);font-size:{int(sz*0.46)}px;">{icon}</div>'
             f'  <div class="label" style="color:{lc};font-size:{ls}px;">{cat}</div>'
             f'</a>'
         )
@@ -1600,15 +1026,12 @@ if categories:
     st.markdown("".join(circles_html), unsafe_allow_html=True)
 
 
-# ==========================================================
-# BANNER DE ANUNCIOS (estilo Amazon: hero + 4 tarjetas)
-# ==========================================================
+# --- BANNER DE ANUNCIOS ---
 def render_anuncios_banner():
     _anuncios = load_anuncios()
     _cards = _anuncios.get("cards", [])
     _has_cards = any((c.get("img_b64") or c.get("title")) for c in _cards)
 
-    # Nuevo: hasta 4 imagenes de fondo con slideshow (cada 1.5s).
     _slides_raw = _anuncios.get("banner_slides", [])
     _slides = []
     for s in _slides_raw:
@@ -1616,7 +1039,6 @@ def render_anuncios_banner():
         if b64:
             _slides.append({"b64": b64, "url": (s.get("url") or "").strip()})
 
-    # Compatibilidad: si no hay slides nuevos pero hay banner viejo, usarlo
     if not _slides:
         legacy = (_anuncios.get("banner_img_b64") or "").strip()
         if legacy:
@@ -1631,38 +1053,22 @@ def render_anuncios_banner():
     _ovr  = int(_anuncios.get("banner_overlay", 0) or 0)
 
     n = len(_slides)
-    # Duracion por slide: 1.5s.
     per = 1.5
     total = per * max(n, 1)
-    # Keyframes: cada slide visible su ventana, invisible el resto (sin zoom).
-    # Porcentajes de visibilidad por slide
+
     def _kf(i):
-        start   = (i * per) / total * 100
-        end     = ((i + 1) * per) / total * 100
-        # Fade rapido de 8% de la ventana
-        fade    = min(8.0, (end - start) * 0.15)
-        s0 = max(0.0, start - 0.01)
-        s1 = start
-        s2 = min(100.0, start + fade)
-        s3 = max(s2, end - fade)
-        s4 = end
-        s5 = min(100.0, end + 0.01)
+        start = (i * per) / total * 100
+        end   = ((i + 1) * per) / total * 100
+        fade  = min(8.0, (end - start) * 0.15)
         return (
             f"@keyframes amSlide{i} {{"
-            f"  0%   {{ opacity:0; pointer-events:none; }}"
-            f"  {s0:.3f}% {{ opacity:0; pointer-events:none; }}"
-            f"  {s1:.3f}% {{ opacity:0; pointer-events:none; }}"
-            f"  {s2:.3f}% {{ opacity:1; pointer-events:auto; }}"
-            f"  {s3:.3f}% {{ opacity:1; pointer-events:auto; }}"
-            f"  {s4:.3f}% {{ opacity:0; pointer-events:none; }}"
-            f"  {s5:.3f}% {{ opacity:0; pointer-events:none; }}"
-            f"  100% {{ opacity:0; pointer-events:none; }}"
+            f"  0%, {max(0.0, start-0.01):.3f}% {{ opacity:0; pointer-events:none; }}"
+            f"  {min(100.0, start+fade):.3f}%, {max(start+fade, end-fade):.3f}% {{ opacity:1; pointer-events:auto; }}"
+            f"  {end:.3f}%, 100% {{ opacity:0; pointer-events:none; }}"
             f"}}"
         )
 
-    keyframes_css = "".join(_kf(i) for i in range(n)) if n > 1 else (
-        "@keyframes amSlide0 { 0%,100% { opacity:1; pointer-events:auto; } }"
-    )
+    keyframes_css = "".join(_kf(i) for i in range(n)) if n > 1 else "@keyframes amSlide0 { 0%,100% { opacity:1; pointer-events:auto; } }"
 
     slides_html = []
     for i, s in enumerate(_slides):
@@ -1670,71 +1076,26 @@ def render_anuncios_banner():
         target_attr = 'target="_blank" rel="noopener"' if s["url"] else ""
         anim = f"animation: amSlide{i} {total}s linear infinite;" if n > 1 else ""
         slides_html.append(
-            f'<a class="am-slide" href="{url}" {target_attr} '
-            f'style="{anim}">'
+            f'<a class="am-slide" href="{url}" {target_attr} style="{anim}">'
             f'<img src="data:image/png;base64,{s["b64"]}"/>'
             f'</a>'
         )
 
     st.markdown(f"""
     <style>
-      .am-ads-wrap {{
-        max-width: 1400px; margin: 4px auto 6px auto; padding: 0 8px;
-      }}
-      .am-ads-hero {{
-        position: relative; width: 100%;
-        height: {_bh}px; border-radius: 14px; overflow: hidden;
-        background: #ffffff;
-        box-shadow: 0 10px 30px rgba(0,0,0,.18);
-      }}
-      .am-ads-hero .am-slide {{
-        position:absolute; inset:0; display:block;
-        opacity:0; pointer-events:none;
-        text-decoration:none;
-      }}
-      .am-ads-hero .am-slide img {{
-        width:100%; height:100%; object-fit: contain;
-        object-position: center center;
-        filter: brightness({_brt}%) blur({_blur}px);
-        display:block;
-      }}
-      .am-ads-hero .ovr {{
-        position:absolute; inset:0; z-index:2; pointer-events:none;
-        background: rgba(0,0,0,{_ovr/100:.2f});
-      }}
+      .am-ads-wrap {{ max-width: 1400px; margin: 4px auto 6px auto; padding: 0 8px; }}
+      .am-ads-hero {{ position: relative; width: 100%; height: {_bh}px; border-radius: 14px; overflow: hidden; background: #ffffff; box-shadow: 0 10px 30px rgba(0,0,0,.18); }}
+      .am-ads-hero .am-slide {{ position:absolute; inset:0; display:block; opacity:0; pointer-events:none; text-decoration:none; }}
+      .am-ads-hero .am-slide img {{ width:100%; height:100%; object-fit: contain; object-position: center center; filter: brightness({_brt}%) blur({_blur}px); display:block; }}
+      .am-ads-hero .ovr {{ position:absolute; inset:0; z-index:2; pointer-events:none; background: rgba(0,0,0,{_ovr/100:.2f}); }}
       {keyframes_css}
-      .am-ads-cards {{
-        display: grid; grid-template-columns: repeat(4, 1fr);
-        gap: 16px; margin-top: -70px; position: relative; z-index: 3;
-        padding: 0 22px;
-      }}
-      .am-ads-card {{
-        background: #fff; border-radius: 10px;
-        padding: 16px 16px 14px 16px;
-        box-shadow: 0 6px 18px rgba(0,0,0,.10);
-        display: flex; flex-direction: column;
-        text-decoration: none !important; color: #111 !important;
-        transition: transform .18s ease, box-shadow .18s ease;
-      }}
-      .am-ads-card:hover {{
-        transform: translateY(-3px);
-        box-shadow: 0 12px 26px rgba(0,0,0,.16);
-      }}
-      .am-ads-card .t {{
-        font-family: Poppins, sans-serif; font-weight: 800;
-        font-size: 18px; color: #0F1111; margin-bottom: 10px;
-        line-height: 1.15;
-      }}
-      .am-ads-card .imgbox {{
-        width: 100%; aspect-ratio: 1/1; overflow: hidden; border-radius: 6px;
-        background: #f2f2f2; display:flex; align-items:center; justify-content:center;
-      }}
-      .am-ads-card .imgbox img {{
-        width: 100%; height: 100%; object-fit: cover;
-      }}
-      .am-ads-card .lnk {{
-        margin-top: 10px; font-size: 13px; color: #007185; font-weight: 700;
-      }}
+      .am-ads-cards {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: -70px; position: relative; z-index: 3; padding: 0 22px; }}
+      .am-ads-card {{ background: #fff; border-radius: 10px; padding: 16px 16px 14px 16px; box-shadow: 0 6px 18px rgba(0,0,0,.10); display: flex; flex-direction: column; text-decoration: none !important; color: #111 !important; transition: transform .18s ease, box-shadow .18s ease; }}
+      .am-ads-card:hover {{ transform: translateY(-3px); box-shadow: 0 12px 26px rgba(0,0,0,.16); }}
+      .am-ads-card .t {{ font-family: Poppins, sans-serif; font-weight: 800; font-size: 18px; color: #0F1111; margin-bottom: 10px; line-height: 1.15; }}
+      .am-ads-card .imgbox {{ width: 100%; aspect-ratio: 1/1; overflow: hidden; border-radius: 6px; background: #f2f2f2; display:flex; align-items:center; justify-content:center; }}
+      .am-ads-card .imgbox img {{ width: 100%; height: 100%; object-fit: cover; }}
+      .am-ads-card .lnk {{ margin-top: 10px; font-size: 13px; color: #007185; font-weight: 700; }}
       @media (max-width: 900px) {{
         .am-ads-cards {{ grid-template-columns: repeat(2, 1fr); margin-top: -40px; }}
         .am-ads-hero {{ height: {max(180, _bh-120)}px; }}
@@ -1743,7 +1104,6 @@ def render_anuncios_banner():
     """, unsafe_allow_html=True)
 
     ovr_html = '<div class="ovr"></div>' if _ovr > 0 else ""
-
     html = ['<div class="am-ads-wrap">']
     html.append(f'<div class="am-ads-hero">{"".join(slides_html)}{ovr_html}</div>')
     if _has_cards:
@@ -1752,8 +1112,7 @@ def render_anuncios_banner():
             title = (c.get("title") or "").strip()
             url   = (c.get("url") or "").strip() or "#"
             b64   = (c.get("img_b64") or "").strip()
-            img_html = (f'<img src="data:image/png;base64,{b64}"/>'
-                        if b64 else '<div style="color:#aaa;font-size:12px;">Sin imagen</div>')
+            img_html = f'<img src="data:image/png;base64,{b64}"/>' if b64 else '<div style="color:#aaa;font-size:12px;">Sin imagen</div>'
             html.append(
                 f'<a class="am-ads-card" href="{url}" target="_top">'
                 f'<div class="t">{title or "&nbsp;"}</div>'
@@ -1769,10 +1128,7 @@ def render_anuncios_banner():
 render_anuncios_banner()
 
 
-
-# ==========================================================
-# Dialogo (modal) para elegir cantidad
-# ==========================================================
+# --- DIALOGO DE CANTIDAD ---
 def _open_add_dialog(prod):
     st.session_state["_add_dialog_prod"] = prod
     st.session_state["_add_dialog_qty"]  = 1
@@ -1789,22 +1145,16 @@ def _render_add_dialog():
         name = prod.get("nombre", "")
         st.markdown(f'<img class="am-modal-img" src="{img_src}" alt="{name}"/>', unsafe_allow_html=True)
         st.markdown(f'<div class="am-modal-name">{name}</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="am-modal-price">{format_price(prod.get("precio",0))}</div>',
-                    unsafe_allow_html=True)
+        st.markdown(f'<div class="am-modal-price">{format_price(prod.get("precio",0))}</div>', unsafe_allow_html=True)
         st.markdown("**Cantidad**")
-        qty = st.number_input(
-            "Cantidad", min_value=1, max_value=999, step=1,
-            value=int(st.session_state.get("_add_dialog_qty", 1)),
-            key="_add_dialog_qty_input", label_visibility="collapsed",
-        )
+        qty = st.number_input("Cantidad", min_value=1, max_value=999, step=1, value=int(st.session_state.get("_add_dialog_qty", 1)), key="_add_dialog_qty_input", label_visibility="collapsed")
         c1, c2 = st.columns(2)
         with c1:
             if st.button("Cancelar", use_container_width=True, key="_add_dialog_cancel"):
                 st.session_state.pop("_add_dialog_prod", None)
                 st.rerun()
         with c2:
-            if st.button("Agregar al carrito", type="primary",
-                         use_container_width=True, key="_add_dialog_ok"):
+            if st.button("Agregar al carrito", type="primary", use_container_width=True, key="_add_dialog_ok"):
                 cart_add(prod, int(qty))
                 st.session_state.pop("_add_dialog_prod", None)
                 st.rerun()
@@ -1820,6 +1170,9 @@ def _render_add_dialog():
             _body()
 
 
+_render_add_dialog()
+
+
 # ==========================================================
 # CONTENIDO PRINCIPAL
 # ==========================================================
@@ -1827,7 +1180,7 @@ st.markdown('<div class="am-wrap">', unsafe_allow_html=True)
 
 
 def render_product_grid(prods, key_prefix, cols_per_row=4):
-    """Grid de productos completos (tarjeta grande + boton agregar)."""
+    """Grid de productos completos con botón agregar."""
     st.markdown('<div class="am-plist">', unsafe_allow_html=True)
     for i in range(0, len(prods), cols_per_row):
         row = st.columns(cols_per_row)
@@ -1837,8 +1190,7 @@ def render_product_grid(prods, key_prefix, cols_per_row=4):
             in_cart = _cart().get(name, {}).get("qty", 0)
             img_src = img_to_data_uri(prod.get("imagen", ""))
             with col:
-                badge = (f'<span class="am-qty-badge">En carrito: {in_cart}</span>'
-                         if in_cart else "")
+                badge = f'<span class="am-qty-badge">En carrito: {in_cart}</span>' if in_cart else ""
                 st.markdown(
                     f"""
                     <div class="am-card">
@@ -1850,8 +1202,7 @@ def render_product_grid(prods, key_prefix, cols_per_row=4):
                     """,
                     unsafe_allow_html=True,
                 )
-                if st.button("🛒  Agregar al carrito", key=f"add_{key_id}",
-                             use_container_width=True, type="primary"):
+                if st.button("🛒  Agregar al carrito", key=f"add_{key_id}", use_container_width=True, type="primary"):
                     _open_add_dialog(prod)
                     st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
@@ -1859,84 +1210,39 @@ def render_product_grid(prods, key_prefix, cols_per_row=4):
 
 # ================== VISTA: CARRITO ==================
 if view == "cart":
-    # Fondo personalizable de la pagina del carrito
-    st.markdown(
-        f"<style>.stApp {{ background: {_ct_pagebg} !important; }}</style>",
-        unsafe_allow_html=True,
-    )
+    st.markdown(f"<style>.stApp {{ background: {_ct_pagebg} !important; }}</style>", unsafe_allow_html=True)
     if st.button("← Seguir comprando", key="btn_back_shop"):
         _nav(cat=current_cat)
-    st.markdown(
-        f'<h2 style="color:{_sec_title_color};font-family:Poppins;">🛒 Tu carrito</h2>',
-        unsafe_allow_html=True,
-    )
+    st.markdown(f'<h2 style="color:{_sec_title_color};font-family:Poppins;">🛒 Tu carrito</h2>', unsafe_allow_html=True)
 
     cart = _cart()
     if not cart:
-        st.markdown(
-            '<div class="am-empty">Tu carrito está vacío.<br>'
-            'Agrega productos desde los apartados.</div>',
-            unsafe_allow_html=True,
-        )
+        st.markdown('<div class="am-empty">Tu carrito está vacío.<br>Agrega productos desde los apartados.</div>', unsafe_allow_html=True)
     else:
         for name, it in list(cart.items()):
             with st.container(border=True):
                 c1, c2, c3, c4, c5 = st.columns([0.7, 3, 2.2, 2, 0.6])
                 with c1:
-                    st.markdown(
-                        f'<img src="{img_to_data_uri(it["imagen"])}" '
-                        f'style="width:56px;height:56px;object-fit:contain;'
-                        f'border-radius:10px;background:#fff;border:1px solid #E2E8F0;padding:3px;"/>',
-                        unsafe_allow_html=True,
-                    )
+                    st.markdown(f'<img src="{img_to_data_uri(it["imagen"])}" style="width:56px;height:56px;object-fit:contain;border-radius:10px;background:#fff;border:1px solid #E2E8F0;padding:3px;"/>', unsafe_allow_html=True)
                 with c2:
-                    st.markdown(
-                        f'<div style="font-weight:700;color:{_ct_name};font-size:13px;line-height:1.2;">{name}</div>'
-                        f'<div style="color:{_ct_price};font-size:11px;margin-top:2px;">'
-                        f'{format_price(it["precio"])} c/u</div>',
-                        unsafe_allow_html=True,
-                    )
+                    st.markdown(f'<div style="font-weight:700;color:{_ct_name};font-size:13px;line-height:1.2;">{name}</div><div style="color:{_ct_price};font-size:11px;margin-top:2px;">{format_price(it["precio"])} c/u</div>', unsafe_allow_html=True)
                 with c3:
                     b1, bq, b2 = st.columns([1, 1, 1])
                     with b1:
                         if st.button("−", key=f"cart_minus_{name}"):
                             cart_set(name, it["qty"] - 1); st.rerun()
                     with bq:
-                        st.markdown(
-                            f'<div style="text-align:center;font-weight:900;'
-                            f'padding-top:6px;color:{_ct_qty};font-size:16px;">'
-                            f'{it["qty"]}</div>',
-                            unsafe_allow_html=True,
-                        )
+                        st.markdown(f'<div style="text-align:center;font-weight:900;padding-top:6px;color:{_ct_qty};font-size:16px;">{it["qty"]}</div>', unsafe_allow_html=True)
                     with b2:
                         if st.button("+", key=f"cart_plus_{name}"):
                             cart_set(name, it["qty"] + 1); st.rerun()
                 with c4:
-                    st.markdown(
-                        f'<div style="padding-top:4px;text-align:center;">'
-                        f'<span style="display:inline-block;background:{_ct_lbg};'
-                        f'color:{_ct_lfg};font-weight:700;font-size:13px;padding:4px 10px;'
-                        f'border-radius:8px;">{format_price(it["precio"] * it["qty"])}</span></div>',
-                        unsafe_allow_html=True,
-                    )
+                    st.markdown(f'<div style="padding-top:4px;text-align:center;"><span style="display:inline-block;background:{_ct_lbg};color:{_ct_lfg};font-weight:700;font-size:13px;padding:4px 10px;border-radius:8px;">{format_price(it["precio"] * it["qty"])}</span></div>', unsafe_allow_html=True)
                 with c5:
-                    st.markdown(
-                        f"<style>.st-key-cart_del_{name.replace(' ','_')} button{{background:{_ct_delbg} !important;color:{_ct_delfg} !important;}}</style>",
-                        unsafe_allow_html=True,
-                    )
                     if st.button("🗑️", key=f"cart_del_{name}"):
                         cart_set(name, 0); st.rerun()
 
         st.markdown("---")
-
-        # Botones: "Anadir mas productos" + "Vaciar carrito"
-        st.markdown(
-            f"<style>"
-            f".st-key-cart_add_more button{{background:{_ct_addbg} !important;color:{_ct_addfg} !important;}}"
-            f".st-key-cart_pay_now button{{background:{_ct_paybg} !important;color:{_ct_payfg} !important;font-size:14px !important;min-height:42px !important;padding:6px 14px !important;font-weight:800 !important;}}"
-            f"</style>",
-            unsafe_allow_html=True,
-        )
         addc1, addc2 = st.columns([1, 1])
         with addc1:
             if st.button("＋  Añadir más productos", key="cart_add_more", use_container_width=True):
@@ -1948,65 +1254,38 @@ if view == "cart":
                 st.rerun()
 
         st.markdown("<br>", unsafe_allow_html=True)
-
-        # Total grande + boton Pagar ahora
         tt1, tt2 = st.columns([2, 1])
         with tt1:
-            st.markdown(
-                f'<div style="font-size:20px;font-weight:700;color:{_ct_name};margin-top:8px;">Total a pagar:</div>'
-                f'<div style="font-size:42px;font-weight:900;color:{_ct_tot};'
-                f'text-shadow:0 2px 6px rgba(22,163,74,.25);line-height:1.1;">'
-                f'{format_price(cart_total())}</div>',
-                unsafe_allow_html=True,
-            )
+            st.markdown(f'<div style="font-size:20px;font-weight:700;color:{_ct_name};margin-top:8px;">Total a pagar:</div><div style="font-size:42px;font-weight:900;color:{_ct_tot};text-shadow:0 2px 6px rgba(22,163,74,.25);line-height:1.1;">{format_price(cart_total())}</div>', unsafe_allow_html=True)
         with tt2:
             st.markdown("<div style='height:22px'></div>", unsafe_allow_html=True)
             if st.button("💳  Pagar ahora", key="cart_pay_now", use_container_width=True):
                 st.success("¡Gracias por tu compra! (Aquí conectas tu pasarela de pago).")
 
 
-# ================== VISTA: RESULTADOS DE BUSQUEDA GLOBAL ==================
+# ================== VISTA: RESULTADOS BÚSQUEDA GLOBAL ==================
 elif view == "search":
     q = (url_q or "").strip()
-    st.markdown(
-        f'<h2 style="color:{COLOR_PRIMARY};font-family:Poppins;">'
-        f'🔍 Resultados para: <span style="color:{COLOR_TEXT};">"{q}"</span></h2>',
-        unsafe_allow_html=True,
-    )
+    st.markdown(f'<h2 style="color:{COLOR_PRIMARY};font-family:Poppins;">🔍 Resultados para: <span style="color:{COLOR_TEXT};">"{q}"</span></h2>', unsafe_allow_html=True)
     if st.button("← Volver al inicio", key="btn_back_home_from_search"):
         _nav()
     if not q:
         st.info("Escribe algo en la barra de búsqueda.")
     else:
         ql = q.lower()
-        results = [p for p in products
-                   if ql in str(p.get("nombre", "")).lower()
-                   or ql in str(p.get("categoria", "")).lower()]
+        results = [p for p in products if ql in str(p.get("nombre", "")).lower() or ql in str(p.get("categoria", "")).lower()]
         if not results:
-            st.markdown(
-                '<div class="am-empty">No se encontraron productos que coincidan.</div>',
-                unsafe_allow_html=True,
-            )
+            st.markdown('<div class="am-empty">No se encontraron productos que coincidan.</div>', unsafe_allow_html=True)
         else:
             st.caption(f"{len(results)} resultado(s) en toda la tienda.")
             render_product_grid(results, key_prefix="search")
 
 
-# ================== VISTA: HOME (LISTA DE APARTADOS con preview) ==================
+# ================== VISTA: HOME (MUESTRA APARTADOS Y TARJETAS 2x2) ==================
 elif not current_cat:
     if not categories:
-        st.markdown(
-            '<div class="am-empty">Aún no hay apartados.<br>'
-            'Crea apartados desde la app de escritorio '
-            '(botón «Agregar nuevo apartado»).</div>',
-            unsafe_allow_html=True,
-        )
+        st.markdown('<div class="am-empty">Aún no hay apartados.<br>Crea apartados desde la app de escritorio (botón «Agregar nuevo apartado»).</div>', unsafe_allow_html=True)
     else:
-        # Home estilo Amazon: filas de 4 tarjetas por linea. Cada tarjeta
-        # tiene su titulo arriba, una mini cuadricula 2x2 de productos
-        # (imagenes chicas + nombre, SIN precio) y su propio boton "Ver mas"
-        # abajo. Cuando se completan 4 tarjetas, se salta a una nueva fila
-        # con otras 4, y asi sucesivamente.
         def _build_card_html(cat: str) -> str:
             cat_prods = [pp for pp in products if pp.get("categoria") == cat]
             emoji = icon_for_category(cat, category_icons)
@@ -2033,8 +1312,7 @@ elif not current_cat:
 
             if not preview:
                 grid_html = ('<div class="am-quad-grid am-quad-grid-empty">'
-                             '<div class="am-section-empty" style="grid-column:1/-1;">'
-                             'Aún no hay productos.</div></div>')
+                             '<div class="am-section-empty" style="grid-column:1/-1;">Aún no hay productos.</div></div>')
             else:
                 grid_html = f'<div class="am-quad-grid">{items_html}</div>'
 
@@ -2045,72 +1323,59 @@ elif not current_cat:
                 f'    <span class="am-tile-count">· {total_cat} producto(s)</span>'
                 f'  </div>'
                 f'  {grid_html}'
-                f'  <a class="am-tile-more" href="?cat={cat}" target="_top" '
-                f'     onclick="try{{window.top.location.href=\'?cat={cat}\';}}catch(e){{window.location.href=\'?cat={cat}\';}}return false;" '
-                f'     style="background:{mbg};color:{mfg};">Ver más →</a>'
+                f'  <a class="am-tile-more" href="?cat={cat}" target="_top" style="background:{mbg};color:{mfg};">Ver más →</a>'
                 f'</div>'
             )
 
-        # Renderiza en filas de 4
         PER_ROW = 4
         for row_start in range(0, len(categories), PER_ROW):
             row_cats = categories[row_start:row_start + PER_ROW]
             cards_html = "".join(_build_card_html(c) for c in row_cats)
-            # Rellenar huecos para mantener 4 columnas
             for _ in range(PER_ROW - len(row_cats)):
                 cards_html += '<div class="am-tile am-tile-empty"></div>'
-            st.markdown(
-                f'<div class="am-tiles-row">{cards_html}</div>',
-                unsafe_allow_html=True,
-            )
+            st.markdown(f'<div class="am-tiles-row">{cards_html}</div>', unsafe_allow_html=True)
 
 
-# ================== VISTA: PRODUCTOS DE UN APARTADO ==================
+# ================== VISTA: APARTADO INDIVIDUAL (VER MÁS / CATEGORÍA) ==================
 else:
-    top1, top2 = st.columns([1, 5])
-    with top1:
-        if st.button("← Apartados", key="btn_back_cats"):
-            _nav()
-    emoji = icon_for_category(current_cat, category_icons)
+    if st.button("← Volver al inicio", key="btn_back_home"):
+        _nav()
+
+    cat_prods = [p for p in products if p.get("categoria") == current_cat]
+    stl = get_cat_style(current_cat, _cat_styles)
+    icon = stl["icon"] or icon_for_category(current_cat, category_icons)
+
     st.markdown(
-        f'<h2 style="color:{COLOR_PRIMARY};font-family:Poppins;">'
-        f'{emoji} {current_cat.capitalize()}</h2>',
+        f'<h2 style="color:{stl["title_color"] or COLOR_PRIMARY};font-family:Poppins;margin-top:10px;">'
+        f'{icon} {current_cat.capitalize()} <span style="font-size:16px;color:#6b7280;font-weight:400;">({len(cat_prods)} productos)</span></h2>',
         unsafe_allow_html=True,
     )
 
-    col_s1, col_s2 = st.columns([3, 1])
-    with col_s1:
-        query = st.text_input(
-            "Buscar producto",
-            placeholder=f"Buscar en {current_cat}…",
-            label_visibility="collapsed",
-            key="cat_search",
-        )
-    with col_s2:
-        if st.button("🔄 Actualizar", use_container_width=True):
-            st.rerun()
-
-    cat_prods = [p for p in products if p.get("categoria") == current_cat]
-    if query:
-        q = query.lower().strip()
-        cat_prods = [p for p in cat_prods if q in str(p.get("nombre", "")).lower()]
-
     if not cat_prods:
-        st.markdown(
-            '<div class="am-empty">No hay productos en este apartado todavía.<br>'
-            'Agrégalos desde la app de escritorio.</div>',
-            unsafe_allow_html=True,
-        )
+        st.markdown('<div class="am-empty">Este apartado aún no tiene productos registrados.</div>', unsafe_allow_html=True)
     else:
-        total = len(cat_prods)
-        # Sin paginacion: mostrar todos los productos en una sola pagina
-        render_product_grid(cat_prods, key_prefix=f"cat_{current_cat}", cols_per_row=4)
-        st.caption(f"Mostrando {total} producto(s).")
+        # Paginación
+        total_pages = max(1, (len(cat_prods) + PRODUCTS_PER_PAGE - 1) // PRODUCTS_PER_PAGE)
+        page = st.session_state.get(f"page_{current_cat}", 1)
+        if page > total_pages: page = 1
 
+        start_idx = (page - 1) * PRODUCTS_PER_PAGE
+        page_prods = cat_prods[start_idx:start_idx + PRODUCTS_PER_PAGE]
 
-st.markdown("</div>", unsafe_allow_html=True)  # cierra am-wrap
+        render_product_grid(page_prods, key_prefix=f"cat_{current_cat}_p{page}")
 
+        if total_pages > 1:
+            st.markdown("<br>", unsafe_allow_html=True)
+            p_cols = st.columns([1, 2, 1])
+            with p_cols[0]:
+                if page > 1 and st.button("← Anterior", key=f"prev_{current_cat}"):
+                    st.session_state[f"page_{current_cat}"] = page - 1
+                    st.rerun()
+            with p_cols[1]:
+                st.markdown(f'<div style="text-align:center;font-weight:700;padding-top:8px;">Página {page} de {total_pages}</div>', unsafe_allow_html=True)
+            with p_cols[2]:
+                if page < total_pages and st.button("Siguiente →", key=f"next_{current_cat}"):
+                    st.session_state[f"page_{current_cat}"] = page + 1
+                    st.rerun()
 
-# Render del dialogo si esta activo
-if st.session_state.get("_add_dialog_prod"):
-    _render_add_dialog()
+st.markdown('</div>', unsafe_allow_html=True)
