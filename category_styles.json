@@ -1,17 +1,6 @@
 {
-  "Alimentos": {
-    "icon": "🏷️",
-    "circle_color": "#0000ff",
-    "circle_size": 96,
-    "label_color": "#0F172A",
-    "label_size": 14,
-    "title_color": "#0000ff",
-    "title_size": 22,
-    "more_bg": "#0000ff",
-    "more_fg": "#ffffff"
-  },
-  "Juguetes": {
-    "icon": "🧸",
+  "CONFITERIA": {
+    "icon": "🍫",
     "circle_color": "#0000ff",
     "circle_size": 96,
     "label_color": "#0F172A",
@@ -21,8 +10,8 @@
     "more_bg": "#0000ff",
     "more_fg": "#FFFFFF"
   },
-  "Bebidas": {
-    "icon": "🥤",
+  "LIMPIEZA": {
+    "icon": "🏷️",
     "circle_color": "#0000ff",
     "circle_size": 96,
     "label_color": "#000000",
@@ -32,8 +21,206 @@
     "more_bg": "#0000ff",
     "more_fg": "#FFFFFF"
   },
-  "Farmacia": {
+  "VIVERES": {
+    "icon": "🛒",
+    "circle_color": "#0000ff",
+    "circle_size": 96,
+    "label_color": "#0F172A",
+    "label_size": 14,
+    "title_color": "#0000ff",
+    "title_size": 22,
+    "more_bg": "#0000ff",
+    "more_fg": "#ffffff"
+  },
+  "BEBIDAS": {
     "icon": "💊",
+    "circle_color": "#0000ff",
+    "circle_size": 96,
+    "label_color": "#0F172A",
+    "label_size": 14,
+    "title_color": "#0000ff",
+    "title_size": 22,
+    "more_bg": "#0000ff",
+    "more_fg": "#FFFFFF"
+  },
+  "HIGIENE PERSONAL": {
+    "icon": "🏷️",
+    "circle_color": "#0000ff",
+    "circle_size": 96,
+    "label_color": "#0F172A",
+    "label_size": 14,
+    "title_color": "#0000ff",
+    "title_size": 22,
+    "more_bg": "#0000ff",
+    "more_fg": "#FFFFFF"
+  },
+  "ESCOLAR": {
+    "icon": "🏷️",
+    "circle_color": "#0000ff",
+    "circle_size": 96,
+    "label_color": "#0F172A",
+    "label_size": 14,
+    "title_color": "#0000ff",
+    "title_size": 22,
+    "more_bg": "#0000ff",
+    "more_fg": "#FFFFFF"
+  },
+  "JUGETERIA": {
+    "icon": "🏷️",
+    "circle_color": "#0000ff",
+    "circle_size": 96,
+    "label_color": "#0F172A",
+    "label_size": 14,
+    "title_color": "#0000ff",
+    "title_size": 22,
+    "more_bg": "#0000ff",
+    "more_fg": "#FFFFFF"
+  },
+  "QUINCALLERIA": {
+    "icon": "🏷️",
+    "circle_color": "#0000ff",
+    "circle_size": 96,
+    "label_color": "#0F172A",
+    "label_size": 14,
+    "title_color": "#0000ff",
+    "title_size": 22,
+    "more_bg": "#0000ff",
+    "more_fg": "#FFFFFF"
+  },
+  "LACTEOS": {
+    "icon": "🏷️",
+    "circle_color": "#0000ff",
+    "circle_size": 96,
+    "label_color": "#0F172A",
+    "label_size": 14,
+    "title_color": "#0000ff",
+    "title_size": 22,
+    "more_bg": "#0000ff",
+    "more_fg": "#FFFFFF"
+  },
+  "CHARCUTERIA": {
+    "icon": "🏷️",
+    "circle_color": "#0000ff",
+    "circle_size": 96,
+    "label_color": "#0F172A",
+    "label_size": 14,
+    "title_color": "#0000ff",
+    "title_size": 22,
+    "more_bg": "#0000ff",
+    "more_fg": "#FFFFFF"
+  },
+  "ROPA": {
+    "icon": "🏷️",
+    "circle_color": "#0000ff",
+    "circle_size": 96,
+    "label_color": "#0F172A",
+    "label_size": 14,
+    "title_color": "#0000ff",
+    "title_size": 22,
+    "more_bg": "#0000ff",
+    "more_fg": "#FFFFFF"
+  },
+  "COSMETICO": {
+    "icon": "🏷️",
+    "circle_color": "#0000ff",
+    "circle_size": 96,
+    "label_color": "#0F172A",
+    "label_size": 14,
+    "title_color": "#0000ff",
+    "title_size": 22,
+    "more_bg": "#0000ff",
+    "more_fg": "#FFFFFF"
+  },
+  "CARNICERIA": {
+    "icon": "🏷️",
+    "circle_color": "#0000ff",
+    "circle_size": 96,
+    "label_color": "#0F172A",
+    "label_size": 14,
+    "title_color": "#0000ff",
+    "title_size": 22,
+    "more_bg": "#0000ff",
+    "more_fg": "#FFFFFF"
+  },
+  "VEGETALES Y VERDURAS": {
+    "icon": "🏷️",
+    "circle_color": "#0000ff",
+    "circle_size": 96,
+    "label_color": "#0F172A",
+    "label_size": 14,
+    "title_color": "#0000ff",
+    "title_size": 22,
+    "more_bg": "#0000ff",
+    "more_fg": "#FFFFFF"
+  },
+  "FRUTAS Y HORTALIZAS": {
+    "icon": "🏷️",
+    "circle_color": "#0000ff",
+    "circle_size": 96,
+    "label_color": "#0F172A",
+    "label_size": 14,
+    "title_color": "#0000ff",
+    "title_size": 22,
+    "more_bg": "#0000ff",
+    "more_fg": "#FFFFFF"
+  },
+  "HELADOS": {
+    "icon": "🏷️",
+    "circle_color": "#0000ff",
+    "circle_size": 96,
+    "label_color": "#0F172A",
+    "label_size": 14,
+    "title_color": "#0000ff",
+    "title_size": 22,
+    "more_bg": "#0000ff",
+    "more_fg": "#FFFFFF"
+  },
+  "BOLSOS Y CARTERAS": {
+    "icon": "🏷️",
+    "circle_color": "#0000ff",
+    "circle_size": 96,
+    "label_color": "#0F172A",
+    "label_size": 14,
+    "title_color": "#0000ff",
+    "title_size": 22,
+    "more_bg": "#0000ff",
+    "more_fg": "#FFFFFF"
+  },
+  "FERRETERIA": {
+    "icon": "🏷️",
+    "circle_color": "#0000ff",
+    "circle_size": 96,
+    "label_color": "#0F172A",
+    "label_size": 14,
+    "title_color": "#0000ff",
+    "title_size": 22,
+    "more_bg": "#0000ff",
+    "more_fg": "#FFFFFF"
+  },
+  "PANADERIA": {
+    "icon": "🏷️",
+    "circle_color": "#0000ff",
+    "circle_size": 96,
+    "label_color": "#0F172A",
+    "label_size": 14,
+    "title_color": "#0000ff",
+    "title_size": 22,
+    "more_bg": "#0000ff",
+    "more_fg": "#FFFFFF"
+  },
+  "PAPELERIA": {
+    "icon": "🏷️",
+    "circle_color": "#0000ff",
+    "circle_size": 96,
+    "label_color": "#0F172A",
+    "label_size": 14,
+    "title_color": "#0000ff",
+    "title_size": 22,
+    "more_bg": "#0000ff",
+    "more_fg": "#FFFFFF"
+  },
+  "TELEFONIA": {
+    "icon": "🏷️",
     "circle_color": "#0000ff",
     "circle_size": 96,
     "label_color": "#0F172A",
