@@ -47,6 +47,7 @@ CAT_ICONS_FILE   = BASE_DIR / "category_icons.json"
 CAT_STYLES_FILE  = BASE_DIR / "category_styles.json"
 TITLES_FILE      = BASE_DIR / "titles_settings.json"
 CART_FILE        = BASE_DIR / "cart.json"
+ANUNCIOS_FILE    = BASE_DIR / "anuncios.json"
 
 
 def load_site_settings() -> dict:
@@ -188,6 +189,37 @@ def _save_cart_file(cart: dict) -> None:
                              encoding="utf-8")
     except Exception:
         pass
+
+
+def load_anuncios() -> dict:
+    """Configuracion de anuncios (banner + 4 tarjetas). Estilo Amazon."""
+    defaults = {
+        "banner_img_b64": "",
+        "banner_brightness": 100,    # 0..200
+        "banner_blur": 0,            # 0..20 px
+        "banner_overlay": 0,         # 0..70 (oscurecer)
+        "banner_height": 460,        # px (alto para que la imagen HD entre completa)
+        "cards": [
+            {"title": "", "img_b64": "", "url": ""},
+            {"title": "", "img_b64": "", "url": ""},
+            {"title": "", "img_b64": "", "url": ""},
+            {"title": "", "img_b64": "", "url": ""},
+        ],
+    }
+    if not ANUNCIOS_FILE.exists():
+        return defaults
+    try:
+        data = json.loads(ANUNCIOS_FILE.read_text(encoding="utf-8"))
+        for k, v in defaults.items():
+            data.setdefault(k, v)
+        # normalizar 4 tarjetas
+        cards = list(data.get("cards", []))
+        while len(cards) < 4:
+            cards.append({"title": "", "img_b64": "", "url": ""})
+        data["cards"] = cards[:4]
+        return data
+    except Exception:
+        return defaults
 
 
 PRODUCTS_PER_PAGE = 12
@@ -630,8 +662,8 @@ st.markdown(
       .am-cats-wrap {{
         background: #fff;
         border-bottom: 1px solid #E5E7EB;
-        padding: 22px 0 26px 0;
-        margin-bottom: 24px;
+        padding: 6px 0 8px 0;
+        margin-bottom: 6px;
       }}
       .am-cats-scroll {{
         max-width: 1280px; margin: 0 auto;
@@ -1019,7 +1051,7 @@ st.markdown(
         }}
 
         /* ================= CATEGORIAS (circulos) ================= */
-        .am-cats-wrap {{ padding: 12px 0 14px 0; margin-bottom: 12px; }}
+        .am-cats-wrap {{ padding: 4px 0 6px 0; margin-bottom: 4px; }}
         .am-cats-scroll {{ gap: 10px; padding: 0 12px; }}
         .am-cat-circle {{ min-width: 68px; gap: 6px; }}
         .am-cat-circle .bubble {{ width: 64px; height: 64px; font-size: 28px; }}
@@ -1411,6 +1443,176 @@ if categories:
 
 
 # ==========================================================
+# BANNER DE ANUNCIOS (estilo Amazon: hero + 4 tarjetas)
+# ==========================================================
+def render_anuncios_banner():
+    _anuncios = load_anuncios()
+    _cards = _anuncios.get("cards", [])
+    _has_cards = any((c.get("img_b64") or c.get("title")) for c in _cards)
+
+    # Nuevo: hasta 4 imagenes de fondo con slideshow (cada 1.5s).
+    _slides_raw = _anuncios.get("banner_slides", [])
+    _slides = []
+    for s in _slides_raw:
+        b64 = (s.get("img_b64") or "").strip()
+        if b64:
+            _slides.append({"b64": b64, "url": (s.get("url") or "").strip()})
+
+    # Compatibilidad: si no hay slides nuevos pero hay banner viejo, usarlo
+    if not _slides:
+        legacy = (_anuncios.get("banner_img_b64") or "").strip()
+        if legacy:
+            _slides.append({"b64": legacy, "url": ""})
+
+    if not _slides and not _has_cards:
+        return
+
+    _bh   = int(_anuncios.get("banner_height", 320) or 320)
+    _brt  = int(_anuncios.get("banner_brightness", 100) or 100)
+    _blur = int(_anuncios.get("banner_blur", 0) or 0)
+    _ovr  = int(_anuncios.get("banner_overlay", 0) or 0)
+
+    n = len(_slides)
+    # Duracion por slide: 1.5s.
+    per = 1.5
+    total = per * max(n, 1)
+    # Keyframes: cada slide visible su ventana, invisible el resto (sin zoom).
+    # Porcentajes de visibilidad por slide
+    def _kf(i):
+        start   = (i * per) / total * 100
+        end     = ((i + 1) * per) / total * 100
+        # Fade rapido de 8% de la ventana
+        fade    = min(8.0, (end - start) * 0.15)
+        s0 = max(0.0, start - 0.01)
+        s1 = start
+        s2 = min(100.0, start + fade)
+        s3 = max(s2, end - fade)
+        s4 = end
+        s5 = min(100.0, end + 0.01)
+        return (
+            f"@keyframes amSlide{i} {{"
+            f"  0%   {{ opacity:0; pointer-events:none; }}"
+            f"  {s0:.3f}% {{ opacity:0; pointer-events:none; }}"
+            f"  {s1:.3f}% {{ opacity:0; pointer-events:none; }}"
+            f"  {s2:.3f}% {{ opacity:1; pointer-events:auto; }}"
+            f"  {s3:.3f}% {{ opacity:1; pointer-events:auto; }}"
+            f"  {s4:.3f}% {{ opacity:0; pointer-events:none; }}"
+            f"  {s5:.3f}% {{ opacity:0; pointer-events:none; }}"
+            f"  100% {{ opacity:0; pointer-events:none; }}"
+            f"}}"
+        )
+
+    keyframes_css = "".join(_kf(i) for i in range(n)) if n > 1 else (
+        "@keyframes amSlide0 { 0%,100% { opacity:1; pointer-events:auto; } }"
+    )
+
+    slides_html = []
+    for i, s in enumerate(_slides):
+        url = s["url"] or "#"
+        target_attr = 'target="_blank" rel="noopener"' if s["url"] else ""
+        anim = f"animation: amSlide{i} {total}s linear infinite;" if n > 1 else ""
+        slides_html.append(
+            f'<a class="am-slide" href="{url}" {target_attr} '
+            f'style="{anim}">'
+            f'<img src="data:image/png;base64,{s["b64"]}"/>'
+            f'</a>'
+        )
+
+    st.markdown(f"""
+    <style>
+      .am-ads-wrap {{
+        max-width: 1400px; margin: 4px auto 6px auto; padding: 0 8px;
+      }}
+      .am-ads-hero {{
+        position: relative; width: 100%;
+        height: {_bh}px; border-radius: 14px; overflow: hidden;
+        background: #ffffff;
+        box-shadow: 0 10px 30px rgba(0,0,0,.18);
+      }}
+      .am-ads-hero .am-slide {{
+        position:absolute; inset:0; display:block;
+        opacity:0; pointer-events:none;
+        text-decoration:none;
+      }}
+      .am-ads-hero .am-slide img {{
+        width:100%; height:100%; object-fit: contain;
+        object-position: center center;
+        filter: brightness({_brt}%) blur({_blur}px);
+        display:block;
+      }}
+      .am-ads-hero .ovr {{
+        position:absolute; inset:0; z-index:2; pointer-events:none;
+        background: rgba(0,0,0,{_ovr/100:.2f});
+      }}
+      {keyframes_css}
+      .am-ads-cards {{
+        display: grid; grid-template-columns: repeat(4, 1fr);
+        gap: 16px; margin-top: -70px; position: relative; z-index: 3;
+        padding: 0 22px;
+      }}
+      .am-ads-card {{
+        background: #fff; border-radius: 10px;
+        padding: 16px 16px 14px 16px;
+        box-shadow: 0 6px 18px rgba(0,0,0,.10);
+        display: flex; flex-direction: column;
+        text-decoration: none !important; color: #111 !important;
+        transition: transform .18s ease, box-shadow .18s ease;
+      }}
+      .am-ads-card:hover {{
+        transform: translateY(-3px);
+        box-shadow: 0 12px 26px rgba(0,0,0,.16);
+      }}
+      .am-ads-card .t {{
+        font-family: Poppins, sans-serif; font-weight: 800;
+        font-size: 18px; color: #0F1111; margin-bottom: 10px;
+        line-height: 1.15;
+      }}
+      .am-ads-card .imgbox {{
+        width: 100%; aspect-ratio: 1/1; overflow: hidden; border-radius: 6px;
+        background: #f2f2f2; display:flex; align-items:center; justify-content:center;
+      }}
+      .am-ads-card .imgbox img {{
+        width: 100%; height: 100%; object-fit: cover;
+      }}
+      .am-ads-card .lnk {{
+        margin-top: 10px; font-size: 13px; color: #007185; font-weight: 700;
+      }}
+      @media (max-width: 900px) {{
+        .am-ads-cards {{ grid-template-columns: repeat(2, 1fr); margin-top: -40px; }}
+        .am-ads-hero {{ height: {max(180, _bh-120)}px; }}
+      }}
+    </style>
+    """, unsafe_allow_html=True)
+
+    ovr_html = '<div class="ovr"></div>' if _ovr > 0 else ""
+
+    html = ['<div class="am-ads-wrap">']
+    html.append(f'<div class="am-ads-hero">{"".join(slides_html)}{ovr_html}</div>')
+    if _has_cards:
+        html.append('<div class="am-ads-cards">')
+        for c in _cards:
+            title = (c.get("title") or "").strip()
+            url   = (c.get("url") or "").strip() or "#"
+            b64   = (c.get("img_b64") or "").strip()
+            img_html = (f'<img src="data:image/png;base64,{b64}"/>'
+                        if b64 else '<div style="color:#aaa;font-size:12px;">Sin imagen</div>')
+            html.append(
+                f'<a class="am-ads-card" href="{url}" target="_self">'
+                f'<div class="t">{title or "&nbsp;"}</div>'
+                f'<div class="imgbox">{img_html}</div>'
+                f'<div class="lnk">Ver más &rsaquo;</div>'
+                f'</a>'
+            )
+        html.append('</div>')
+    html.append('</div>')
+    st.markdown("".join(html), unsafe_allow_html=True)
+
+
+render_anuncios_banner()
+
+
+
+# ==========================================================
 # Dialogo (modal) para elegir cantidad
 # ==========================================================
 def _open_add_dialog(prod):
@@ -1741,14 +1943,9 @@ else:
         )
     else:
         total = len(cat_prods)
-        pages = max(1, (total + PRODUCTS_PER_PAGE - 1) // PRODUCTS_PER_PAGE)
-        page = st.number_input("Página", min_value=1, max_value=pages,
-                               value=1, step=1) if pages > 1 else 1
-        start = (page - 1) * PRODUCTS_PER_PAGE
-        chunk = cat_prods[start:start + PRODUCTS_PER_PAGE]
-
-        render_product_grid(chunk, key_prefix=f"cat_{current_cat}", cols_per_row=4)
-        st.caption(f"Mostrando {len(chunk)} de {total} productos.")
+        # Sin paginacion: mostrar todos los productos en una sola pagina
+        render_product_grid(cat_prods, key_prefix=f"cat_{current_cat}", cols_per_row=4)
+        st.caption(f"Mostrando {total} producto(s).")
 
 
 st.markdown("</div>", unsafe_allow_html=True)  # cierra am-wrap
