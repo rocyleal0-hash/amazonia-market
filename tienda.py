@@ -25,8 +25,11 @@ import io
 import json
 import re
 import html
+import secrets
+import sqlite3
+import time
 from pathlib import Path
-from urllib.parse import quote, urlsplit
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 import streamlit as st
 from PIL import Image, ImageFilter
@@ -48,12 +51,16 @@ CUSTOM_LOGO_FILE = BASE_DIR / "site_logo.png"
 CAT_ICONS_FILE   = BASE_DIR / "category_icons.json"
 CAT_STYLES_FILE  = BASE_DIR / "category_styles.json"
 TITLES_FILE      = BASE_DIR / "titles_settings.json"
-CART_FILE        = BASE_DIR / "cart.json"
+CART_DB          = BASE_DIR / "carts.sqlite3"
 ANUNCIOS_FILE    = BASE_DIR / "anuncios.json"
 
 # URL real de la tienda publicada. Todos los clics internos usan esta base
 # para evitar que Streamlit abra localhost:8501 en teléfonos o iframes.
 PUBLIC_APP_URL = "https://amazonia-market-28jgxrruwh624x9qvdvjnm.streamlit.app/"
+
+# Identificador anonimo y aleatorio del visitante actual. Se inicializa desde
+# ?cid=... antes de dibujar la tienda y viaja en todos los enlaces internos.
+VISITOR_ID = ""
 
 
 def _html_attr(value) -> str:
@@ -63,6 +70,8 @@ def _html_attr(value) -> str:
 def app_url(view=None, cat=None, q=None) -> str:
     """Construye enlaces internos absolutos hacia la app publicada."""
     params = []
+    if VISITOR_ID:
+        params.append("cid=" + quote(VISITOR_ID, safe=""))
     if view:
         params.append("view=" + quote(str(view), safe=""))
     if cat:
@@ -71,6 +80,23 @@ def app_url(view=None, cat=None, q=None) -> str:
         params.append("q=" + quote(str(q), safe=""))
     base = PUBLIC_APP_URL.rstrip("/") + "/"
     return base + (("?" + "&".join(params)) if params else "")
+
+
+def _with_visitor_id(url: str) -> str:
+    """Agrega el cid a una URL interna sin alterar sus demas parametros."""
+    if not VISITOR_ID or not url or url == "#":
+        return url
+    try:
+        parsed = urlsplit(url)
+        app_host = urlsplit(PUBLIC_APP_URL).netloc.lower()
+        if parsed.netloc and parsed.netloc.lower() != app_host:
+            return url
+        params = dict(parse_qsl(parsed.query, keep_blank_values=True))
+        params["cid"] = VISITOR_ID
+        return urlunsplit((parsed.scheme, parsed.netloc, parsed.path,
+                           urlencode(params), parsed.fragment))
+    except Exception:
+        return url
 
 
 def normalize_app_link(url: str) -> str:
@@ -87,16 +113,17 @@ def normalize_app_link(url: str) -> str:
                 suffix += "?" + parsed.query
             if parsed.fragment:
                 suffix += "#" + parsed.fragment
-            return (PUBLIC_APP_URL.rstrip("/") + "/" + suffix) if suffix else app_url()
+            converted = (PUBLIC_APP_URL.rstrip("/") + "/" + suffix) if suffix else app_url()
+            return _with_visitor_id(converted)
         except Exception:
             return app_url()
     if raw.startswith("?"):
-        return PUBLIC_APP_URL.rstrip("/") + "/" + raw
+        return _with_visitor_id(PUBLIC_APP_URL.rstrip("/") + "/" + raw)
     if raw.startswith("/"):
-        return PUBLIC_APP_URL.rstrip("/") + raw
+        return _with_visitor_id(PUBLIC_APP_URL.rstrip("/") + raw)
     if raw.startswith("#"):
         return PUBLIC_APP_URL.rstrip("/") + "/" + raw
-    return raw
+    return _with_visitor_id(raw)
 
 
 def load_site_settings() -> dict:
@@ -220,24 +247,25 @@ def get_cat_style(cat: str, styles: dict) -> dict:
     }
 
 
-# ----- Carrito persistente en disco (fix bug: el <a href> reseteaba session_state) -----
-def _load_cart_file() -> dict:
-    if CART_FILE.exists():
-        try:
-            data = json.loads(CART_FILE.read_text(encoding="utf-8"))
-            if isinstance(data, dict):
-                return data
-        except Exception:
-            pass
-    return {}
-
-
-def _save_cart_file(cart: dict) -> None:
-    try:
-        CART_FILE.write_text(json.dumps(cart, ensure_ascii=False, indent=2),
-                             encoding="utf-8")
-    except Exception:
-        pass
+# ----- Carritos persistentes, separados por visitante -----
+def _cart_connection():
+    """Abre la base local y crea la tabla segura para varios visitantes."""
+    conn = sqlite3.connect(str(CART_DB), timeout=15)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS visitor_cart (
+            visitor_id  TEXT NOT NULL,
+            product_name TEXT NOT NULL,
+            price       REAL NOT NULL,
+            image       TEXT NOT NULL DEFAULT '',
+            quantity    INTEGER NOT NULL,
+            updated_at  INTEGER NOT NULL,
+            PRIMARY KEY (visitor_id, product_name)
+        )
+        """
+    )
+    return conn
 
 
 def load_anuncios() -> dict:
@@ -415,50 +443,89 @@ def icon_for_category(name: str, overrides: dict) -> str:
 
 
 # ----------------------------------------------------------
-# Carrito (session_state)
+# Carrito individual persistente (SQLite + identificador anonimo)
 # ----------------------------------------------------------
 def _cart():
-    # >>> CARRITO INDIVIDUAL POR VISITANTE <<<
-    # Cada sesion de navegador tiene su propio session_state, asi que
-    # NO leemos ni guardamos el archivo compartido cart.json. De esa
-    # forma cuando entra otra persona (otro telefono / IP / navegador)
-    # su carrito siempre arranca vacio y no ve lo que otros agregaron.
-    if "cart" not in st.session_state:
-        st.session_state.cart = {}
-    return st.session_state.cart
+    """Lee unicamente el carrito perteneciente al cid de esta URL."""
+    if not VISITOR_ID:
+        return {}
+    with _cart_connection() as conn:
+        rows = conn.execute(
+            "SELECT product_name, price, image, quantity "
+            "FROM visitor_cart WHERE visitor_id = ? AND quantity > 0",
+            (VISITOR_ID,),
+        ).fetchall()
+    return {
+        name: {"nombre": name, "precio": price, "imagen": image, "qty": qty}
+        for name, price, image, qty in rows
+    }
 
 
 def _persist():
-    # No-op a proposito: el carrito NO se persiste en disco para que
-    # cada visitante tenga el suyo (ver comentario en _cart()).
+    # Las operaciones cart_add/cart_set ya escriben de inmediato en SQLite.
     return
 
 
 def cart_add(prod, qty=1):
-    c = _cart()
     key = prod.get("nombre", "")
-    if key in c:
-        c[key]["qty"] += qty
-    else:
-        c[key] = {
-            "nombre": key,
-            "precio": float(prod.get("precio", 0) or 0),
-            "imagen": prod.get("imagen", ""),
-            "qty": qty,
-        }
-    if c[key]["qty"] <= 0:
-        c.pop(key, None)
-    _persist()
+    if not VISITOR_ID or not key:
+        return
+    qty = int(qty)
+    price = float(prod.get("precio", 0) or 0)
+    image = str(prod.get("imagen", "") or "")
+    now = int(time.time())
+    with _cart_connection() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute(
+            "SELECT quantity FROM visitor_cart "
+            "WHERE visitor_id = ? AND product_name = ?",
+            (VISITOR_ID, key),
+        ).fetchone()
+        new_qty = (int(row[0]) if row else 0) + qty
+        if new_qty <= 0:
+            conn.execute(
+                "DELETE FROM visitor_cart WHERE visitor_id = ? AND product_name = ?",
+                (VISITOR_ID, key),
+            )
+        else:
+            conn.execute(
+                """
+                INSERT INTO visitor_cart
+                    (visitor_id, product_name, price, image, quantity, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(visitor_id, product_name) DO UPDATE SET
+                    price = excluded.price,
+                    image = excluded.image,
+                    quantity = excluded.quantity,
+                    updated_at = excluded.updated_at
+                """,
+                (VISITOR_ID, key, price, image, new_qty, now),
+            )
 
 
 def cart_set(name, qty):
-    c = _cart()
-    if name in c:
+    if not VISITOR_ID:
+        return
+    qty = int(qty)
+    with _cart_connection() as conn:
         if qty <= 0:
-            c.pop(name, None)
+            conn.execute(
+                "DELETE FROM visitor_cart WHERE visitor_id = ? AND product_name = ?",
+                (VISITOR_ID, name),
+            )
         else:
-            c[name]["qty"] = qty
-        _persist()
+            conn.execute(
+                "UPDATE visitor_cart SET quantity = ?, updated_at = ? "
+                "WHERE visitor_id = ? AND product_name = ?",
+                (qty, int(time.time()), VISITOR_ID, name),
+            )
+
+
+def cart_clear():
+    """Vacia solamente el carrito del visitante actual."""
+    if VISITOR_ID:
+        with _cart_connection() as conn:
+            conn.execute("DELETE FROM visitor_cart WHERE visitor_id = ?", (VISITOR_ID,))
 
 
 def cart_total():
@@ -1422,25 +1489,47 @@ try:
     current_cat = qp.get("cat", None)
     view        = qp.get("view", None)
     url_q       = qp.get("q", None)
+    visitor_id  = qp.get("cid", None)
     if isinstance(current_cat, list): current_cat = current_cat[0] if current_cat else None
     if isinstance(view, list):        view        = view[0]        if view else None
     if isinstance(url_q, list):       url_q       = url_q[0]       if url_q else None
+    if isinstance(visitor_id, list):  visitor_id  = visitor_id[0]  if visitor_id else None
 except Exception:
     qp = st.experimental_get_query_params()
     current_cat = (qp.get("cat",  [None]) or [None])[0]
     view        = (qp.get("view", [None]) or [None])[0]
     url_q       = (qp.get("q",    [None]) or [None])[0]
+    visitor_id  = (qp.get("cid",  [None]) or [None])[0]
+
+# Cada entrada nueva recibe un identificador imposible de adivinar. Al abrir
+# apartados en otra pestana, el enlace conserva este cid y recupera el mismo
+# carrito. Otra persona que entra por el enlace limpio obtiene otro cid.
+if not visitor_id or not re.fullmatch(r"[A-Za-z0-9_-]{20,128}", str(visitor_id)):
+    visitor_id = secrets.token_urlsafe(24)
+    try:
+        st.query_params["cid"] = visitor_id
+    except Exception:
+        params = {}
+        if current_cat: params["cat"] = current_cat
+        if view:        params["view"] = view
+        if url_q:       params["q"] = url_q
+        params["cid"] = visitor_id
+        st.experimental_set_query_params(**params)
+    st.rerun()
+
+VISITOR_ID = str(visitor_id)
 
 
 def _nav(view=None, cat=None, q=None):
     """Cambia la vista SIN recargar la pagina (conserva el carrito)."""
     try:
         st.query_params.clear()
+        st.query_params["cid"] = VISITOR_ID
         if view: st.query_params["view"] = view
         if cat:  st.query_params["cat"]  = cat
         if q:    st.query_params["q"]    = q
     except Exception:
-        params = {}
+        params = {"cid": VISITOR_ID}
         if view: params["view"] = view
         if cat:  params["cat"]  = cat
         if q:    params["q"]    = q
@@ -2099,8 +2188,7 @@ if view == "cart":
                 _nav()
         with addc2:
             if st.button("🗑  Vaciar carrito", key="cart_clear", use_container_width=True):
-                st.session_state.cart = {}
-                _persist()
+                cart_clear()
                 st.rerun()
 
         st.markdown("<br>", unsafe_allow_html=True)
