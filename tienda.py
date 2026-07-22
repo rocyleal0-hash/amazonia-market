@@ -426,6 +426,29 @@ st.set_page_config(
     layout="wide",
 )
 
+# Forzar que TODOS los enlaces internos naveguen en la MISMA pestaña
+# (rompen el iframe de Streamlit y reemplazan la ventana actual).
+st.markdown(
+    """
+    <base target="_top">
+    <script>
+    (function(){
+      function fixLinks(){
+        document.querySelectorAll('a[href]').forEach(function(a){
+          var href = a.getAttribute('href') || '';
+          if (href.startsWith('http') && !href.includes(location.host)) return;
+          a.setAttribute('target','_top');
+        });
+      }
+      fixLinks();
+      new MutationObserver(fixLinks).observe(document.body, {childList:true, subtree:true});
+    })();
+    </script>
+    """,
+    unsafe_allow_html=True,
+)
+
+
 logo_b64        = get_logo_b64()
 topbar_logo_b64 = get_topbar_logo_b64()
 category_icons  = load_category_icons()
@@ -729,35 +752,168 @@ st.markdown(
       }}
 
       /* Mini tarjeta de producto (preview del home) */
-      .am-mini {{
+      /* ================= TARJETAS HOME EN FILAS DE 4 ================= */
+      .am-tiles-row {{
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+        margin: 12px 0 20px 0;
+      }}
+      .am-tile {{
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        padding: 14px 14px 12px 14px;
+        box-shadow: 0 2px 10px rgba(0,0,0,.06);
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }}
+      .am-tile-empty {{
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+      }}
+      .am-tile-title {{
+        font-family: Poppins, sans-serif;
+        font-weight: 800;
+        font-size: 16px;
+        line-height: 1.2;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }}
+      .am-tile-count {{
+        color: #6b7280;
+        font-size: 11px;
+        font-weight: 600;
+        margin-left: 4px;
+      }}
+      .am-tile .am-quad-grid {{
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 8px;
+        flex: 1;
+      }}
+      .am-tile-more {{
+        display: block;
+        text-align: center;
+        text-decoration: none !important;
+        font-family: Poppins, sans-serif;
+        font-weight: 700;
+        font-size: 13px;
+        padding: 8px 12px;
+        border-radius: 10px;
+        margin-top: 12px;
+        box-shadow: 0 3px 10px rgba(0,0,0,.12);
+      }}
+      .am-tile-more:hover {{ filter: brightness(0.95); }}
+      @media (max-width: 900px) {{
+        .am-tiles-row {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
+      }}
+      @media (max-width: 520px) {{
+        .am-tiles-row {{ grid-template-columns: 1fr; gap: 12px; }}
+        .am-tile-title {{ font-size: 15px; }}
+      }}
+
+      /* ================= CUADRO 2x2 (HOME - vista de apartado) ================= */
+      .am-quad-link {{ text-decoration: none !important; display:block; }}
+      .am-quad-card {{
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        padding: 14px;
+        box-shadow: 0 2px 10px rgba(0,0,0,.06);
+        transition: transform .15s ease, box-shadow .15s ease;
+        max-width: 520px;
+      }}
+      .am-quad-card:hover {{
+        transform: translateY(-2px);
+        box-shadow: 0 8px 22px rgba(0,0,0,.10);
+      }}
+      .am-quad-grid {{
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 10px;
+      }}
+      .am-quad-item {{
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        background: #fafafa;
+        border-radius: 10px;
+        padding: 8px 6px;
+      }}
+      .am-quad-empty {{ background: transparent; }}
+      .am-quad-imgwrap {{
+        width: 100%;
+        height: 90px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }}
+      .am-quad-imgwrap img {{
+        max-width: 100%;
+        max-height: 90px;
+        object-fit: contain;
+      }}
+      .am-quad-name {{
+        margin-top: 6px;
+        font-family: Poppins, sans-serif;
+        font-size: 12px;
+        font-weight: 600;
+        color: #111827;
+        text-align: center;
+        line-height: 1.15;
+        min-height: 28px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }}
+      @media (max-width: 640px) {{
+        .am-quad-card {{ padding: 10px; }}
+        .am-quad-imgwrap {{ height: 68px; }}
+        .am-quad-imgwrap img {{ max-height: 68px; }}
+        .am-quad-name {{ font-size: 11px; min-height: 24px; }}
+      }}
+
+      .am-mini {{{{
         background: #fff;
         border: 1px solid #EEF0F4;
         border-radius: 14px;
         padding: 10px 8px 12px 8px;
         text-align: center;
         transition: transform .12s ease, box-shadow .12s ease;
-      }}
-      .am-mini:hover {{
+      }}}}
+      .am-mini:hover {{{{
         transform: translateY(-3px);
         box-shadow: 0 10px 20px rgba(15,23,42,.10);
-      }}
-      .am-mini img {{
+      }}}}
+      .am-mini img {{{{
         width: 100%; aspect-ratio: 1/1; object-fit: contain;
         border-radius: 10px; background: #F8FAFC;
         max-height: 130px;
-      }}
-      .am-mini .name {{
-        font-size: 12px; color: {COLOR_TEXT}; font-weight: 600;
+      }}}}
+      .am-mini .name {{{{
+        font-size: 12px; color: {{COLOR_TEXT}}; font-weight: 600;
         margin: 8px 4px 4px 4px; line-height: 1.2;
         min-height: 30px;
         display: -webkit-box; -webkit-line-clamp: 2;
         -webkit-box-orient: vertical; overflow: hidden;
-      }}
-      .am-mini .price {{
-        display:inline-block; background: {COLOR_PRICE}; color:#fff;
+      }}}}
+      .am-mini .price {{{{
+        display:inline-block; background: {{COLOR_PRICE}}; color:#fff;
         font-weight: 800; font-size: 12px;
         padding: 3px 10px; border-radius: 8px;
-      }}
+      }}}}
 
       /* ================= TARJETAS DE PRODUCTO (vista apartado) ================= */
       .am-card {{
@@ -1247,7 +1403,8 @@ with st.container(key="am_topbar_v2"):
             f'<img class="am-brand-logo" style="height:{_logo_size_px}px;margin-left:{_logo_offx_px}px;" src="data:image/png;base64,{topbar_logo_b64}" alt="logo"/>')
         st.markdown(
             f"""
-            <a href="?" class="am-brand" style="text-decoration:none;">
+            <a href="?" class="am-brand" target="_top" style="text-decoration:none;">
+
               {logo_html}
               <div>{titles_html}</div>
             </a>
@@ -1375,7 +1532,7 @@ with st.container(key="am_topbar_v2"):
             f"""
             <div style="display:flex; justify-content:center;">
               <a class="am-cart-btn" href="?view=cart" title="Ver carrito"
-                 aria-label="Ver carrito" target="_self">
+                 aria-label="Ver carrito" target="_top">
                 🛒{_badge}
               </a>
             </div>
@@ -1387,7 +1544,7 @@ with st.container(key="am_topbar_v2"):
 # ---------- Panel desplegable del menu (al lado izquierdo) ----------
 if st.session_state.get("menu_open", False):
     _items_html = "".join(
-        f'<a href="?cat={c}" target="_self" '
+        f'<a href="?cat={c}" target="_top" '
         f'style="display:block;padding:12px 18px;border-bottom:1px solid rgba(255,255,255,.15);'
         f'font-family:Poppins,sans-serif;font-weight:600;font-size:14px;">'
         f'{c.capitalize()}</a>'
@@ -1431,7 +1588,8 @@ if categories:
         lc   = stl["label_color"]
         ls   = stl["label_size"]
         circles_html.append(
-            f'<a class="am-cat-circle" href="?cat={cat}" style="min-width:{max(sz+20,80)}px;">'
+            f'<a class="am-cat-circle" href="?cat={cat}" target="_top" style="min-width:{max(sz+20,80)}px;">'
+
             f'  <div class="bubble" style="width:{sz}px;height:{sz}px;'
             f'background: radial-gradient(circle at 30% 30%, color-mix(in srgb, {cc} 78%, white) 0%, {cc} 78%);'
             f'font-size:{int(sz*0.46)}px;">{icon}</div>'
@@ -1597,7 +1755,7 @@ def render_anuncios_banner():
             img_html = (f'<img src="data:image/png;base64,{b64}"/>'
                         if b64 else '<div style="color:#aaa;font-size:12px;">Sin imagen</div>')
             html.append(
-                f'<a class="am-ads-card" href="{url}" target="_self">'
+                f'<a class="am-ads-card" href="{url}" target="_top">'
                 f'<div class="t">{title or "&nbsp;"}</div>'
                 f'<div class="imgbox">{img_html}</div>'
                 f'<div class="lnk">Ver más &rsaquo;</div>'
@@ -1844,65 +2002,66 @@ elif not current_cat:
             unsafe_allow_html=True,
         )
     else:
-        for idx, cat in enumerate(categories):
-            cat_prods = [p for p in products if p.get("categoria") == cat]
+        # Home estilo Amazon: filas de 4 tarjetas por linea. Cada tarjeta
+        # tiene su titulo arriba, una mini cuadricula 2x2 de productos
+        # (imagenes chicas + nombre, SIN precio) y su propio boton "Ver mas"
+        # abajo. Cuando se completan 4 tarjetas, se salta a una nueva fila
+        # con otras 4, y asi sucesivamente.
+        def _build_card_html(cat: str) -> str:
+            cat_prods = [pp for pp in products if pp.get("categoria") == cat]
             emoji = icon_for_category(cat, category_icons)
             total_cat = len(cat_prods)
-
-            # Cabecera de la seccion (titulo + boton ver mas) - estilo por apartado
             stl = get_cat_style(cat, _cat_styles)
             tcolor = stl["title_color"] or _sec_title_color
-            tsize  = stl["title_size"]  or _sec_title_size
             mbg    = stl["more_bg"]     or _sec_more_bg
             mfg    = stl["more_fg"]     or _sec_more_fg
             micon  = stl["icon"] or emoji
-            st.markdown('<div class="am-section">', unsafe_allow_html=True)
-            head_l, head_r = st.columns([6, 1.4], vertical_alignment="center")
-            with head_l:
-                st.markdown(
-                    f'<div class="am-section-title-h" style="color:{tcolor};font-size:{tsize}px;">'
-                    f'<span class="dot"></span> {micon} {cat.capitalize()}'
-                    f' <span style="color:{COLOR_MUTED};font-size:13px;font-weight:600;'
-                    f'margin-left:8px;">· {total_cat} producto(s)</span></div>',
-                    unsafe_allow_html=True,
-                )
-            with head_r:
-                st.markdown(
-                    f'<a href="?cat={cat}" target="_self" '
-                    f'style="display:block;text-align:center;text-decoration:none !important;'
-                    f'background:{mbg} !important;color:{mfg} !important;font-weight:700;'
-                    f'padding:10px 16px;border-radius:12px;font-family:Poppins,sans-serif;'
-                    f'box-shadow:0 4px 12px rgba(0,0,0,.15);">'
-                    f'<span style="color:{mfg} !important;">Ver más →</span></a>',
-                    unsafe_allow_html=True,
-                )
 
-            if not cat_prods:
-                st.markdown(
-                    '<div class="am-section-empty">Aún no hay productos en este apartado.</div>',
-                    unsafe_allow_html=True,
+            preview = cat_prods[:4]
+            items_html = ""
+            for prod in preview:
+                img_src = img_to_data_uri(prod.get("imagen", ""))
+                name = prod.get("nombre", "")
+                items_html += (
+                    f'<div class="am-quad-item">'
+                    f'<div class="am-quad-imgwrap"><img src="{img_src}" alt="{name}"/></div>'
+                    f'<div class="am-quad-name">{name}</div>'
+                    f'</div>'
                 )
+            for _ in range(4 - len(preview)):
+                items_html += '<div class="am-quad-item am-quad-empty"></div>'
+
+            if not preview:
+                grid_html = ('<div class="am-quad-grid am-quad-grid-empty">'
+                             '<div class="am-section-empty" style="grid-column:1/-1;">'
+                             'Aún no hay productos.</div></div>')
             else:
-                preview = cat_prods[:PREVIEW_PER_CAT]
-                cols = st.columns(PREVIEW_PER_CAT)
-                for k, prod in enumerate(preview):
-                    with cols[k]:
-                        img_src = img_to_data_uri(prod.get("imagen", ""))
-                        name = prod.get("nombre", "")
-                        # Todo el mini-card es un enlace al apartado
-                        st.markdown(
-                            f"""
-                            <a href="?cat={cat}" style="text-decoration:none;">
-                              <div class="am-mini">
-                                <img src="{img_src}" alt="{name}"/>
-                                <div class="name">{name}</div>
-                                <div class="price">{format_price(prod.get('precio',0))}</div>
-                              </div>
-                            </a>
-                            """,
-                            unsafe_allow_html=True,
-                        )
-            st.markdown('</div>', unsafe_allow_html=True)
+                grid_html = f'<div class="am-quad-grid">{items_html}</div>'
+
+            return (
+                f'<div class="am-tile">'
+                f'  <div class="am-tile-title" style="color:{tcolor};">'
+                f'    {micon} {cat.capitalize()}'
+                f'    <span class="am-tile-count">· {total_cat} producto(s)</span>'
+                f'  </div>'
+                f'  {grid_html}'
+                f'  <a class="am-tile-more" href="?cat={cat}" target="_top" '
+                f'     style="background:{mbg};color:{mfg};">Ver más →</a>'
+                f'</div>'
+            )
+
+        # Renderiza en filas de 4
+        PER_ROW = 4
+        for row_start in range(0, len(categories), PER_ROW):
+            row_cats = categories[row_start:row_start + PER_ROW]
+            cards_html = "".join(_build_card_html(c) for c in row_cats)
+            # Rellenar huecos para mantener 4 columnas
+            for _ in range(PER_ROW - len(row_cats)):
+                cards_html += '<div class="am-tile am-tile-empty"></div>'
+            st.markdown(
+                f'<div class="am-tiles-row">{cards_html}</div>',
+                unsafe_allow_html=True,
+            )
 
 
 # ================== VISTA: PRODUCTOS DE UN APARTADO ==================
