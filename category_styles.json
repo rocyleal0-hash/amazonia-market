@@ -11,7 +11,7 @@
     "more_fg": "#FFFFFF"
   },
   "LIMPIEZA": {
-    "icon": "🏷️",
+    "icon": "🧹",
     "circle_color": "#0000ff",
     "circle_size": 96,
     "label_color": "#000000",
@@ -22,7 +22,7 @@
     "more_fg": "#FFFFFF"
   },
   "VIVERES": {
-    "icon": "🛒",
+    "icon": "🌽",
     "circle_color": "#0000ff",
     "circle_size": 96,
     "label_color": "#0F172A",
@@ -33,7 +33,7 @@
     "more_fg": "#ffffff"
   },
   "BEBIDAS": {
-    "icon": "💊",
+    "icon": "🍹",
     "circle_color": "#0000ff",
     "circle_size": 96,
     "label_color": "#0F172A",
@@ -143,7 +143,7 @@
     "more_fg": "#FFFFFF"
   },
   "VEGETALES Y VERDURAS": {
-    "icon": "🏷️",
+    "icon": "🥦",
     "circle_color": "#0000ff",
     "circle_size": 96,
     "label_color": "#0F172A",
