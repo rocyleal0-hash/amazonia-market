@@ -1532,7 +1532,7 @@ with st.container(key="am_topbar_v2"):
             f"""
             <div style="display:flex; justify-content:center;">
               <a class="am-cart-btn" href="?view=cart" title="Ver carrito"
-                 aria-label="Ver carrito" target="_top">
+                 <a href="?view=cart" class="tu-clase" aria-label="Ver carrito" target="_top">
                 🛒{_badge}
               </a>
             </div>
@@ -1544,7 +1544,7 @@ with st.container(key="am_topbar_v2"):
 # ---------- Panel desplegable del menu (al lado izquierdo) ----------
 if st.session_state.get("menu_open", False):
     _items_html = "".join(
-        f'<a href="?cat={c}" target="_top" '
+        f'<a href="?cat={c}" target="_top" onclick="try{{window.top.location.href=\'?cat={c}\';}}catch(e){{window.location.href=\'?cat={c}\';}}return false;" '
         f'style="display:block;padding:12px 18px;border-bottom:1px solid rgba(255,255,255,.15);'
         f'font-family:Poppins,sans-serif;font-weight:600;font-size:14px;">'
         f'{c.capitalize()}</a>'
@@ -1588,7 +1588,7 @@ if categories:
         lc   = stl["label_color"]
         ls   = stl["label_size"]
         circles_html.append(
-            f'<a class="am-cat-circle" href="?cat={cat}" target="_top" style="min-width:{max(sz+20,80)}px;">'
+            f'<a class="am-cat-circle" href="?cat={cat}" target="_top" onclick="try{{window.top.location.href=\'?cat={cat}\';}}catch(e){{window.location.href=\'?cat={cat}\';}}return false;" style="min-width:{max(sz+20,80)}px;">'
 
             f'  <div class="bubble" style="width:{sz}px;height:{sz}px;'
             f'background: radial-gradient(circle at 30% 30%, color-mix(in srgb, {cc} 78%, white) 0%, {cc} 78%);'
@@ -2046,6 +2046,7 @@ elif not current_cat:
                 f'  </div>'
                 f'  {grid_html}'
                 f'  <a class="am-tile-more" href="?cat={cat}" target="_top" '
+                f'     onclick="try{{window.top.location.href=\'?cat={cat}\';}}catch(e){{window.location.href=\'?cat={cat}\';}}return false;" '
                 f'     style="background:{mbg};color:{mfg};">Ver más →</a>'
                 f'</div>'
             )
