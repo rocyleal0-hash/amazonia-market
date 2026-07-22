@@ -577,7 +577,7 @@ st.markdown(
           if (internal) fixed = withCid(fixed);
           if (fixed) a.setAttribute('href', fixed);
           if (internal) {{
-            a.setAttribute('target','_self');
+            a.setAttribute('target','_top');
             a.removeAttribute('rel');
           }} else {{
             a.setAttribute('target','_blank');
@@ -1655,7 +1655,7 @@ with st.container(key="am_topbar_v2"):
             f'<img class="am-brand-logo" style="height:{_logo_size_px}px;margin-left:{_logo_offx_px}px;" src="data:image/png;base64,{topbar_logo_b64}" alt="logo"/>')
         st.markdown(
             f"""
-            <a href="{_html_attr(app_url())}" class="am-brand" target="_blank" rel="noopener" style="text-decoration:none;">
+            <a href="{_html_attr(app_url())}" class="am-brand" target="_top" rel="noopener" style="text-decoration:none;">
 
               {logo_html}
               <div>{titles_html}</div>
@@ -1784,7 +1784,7 @@ with st.container(key="am_topbar_v2"):
             f"""
             <div style="display:flex; justify-content:center;">
               <a class="am-cart-btn" href="{_html_attr(app_url(view='cart'))}" title="Ver carrito"
-                 aria-label="Ver carrito" target="_blank" rel="noopener">
+                 aria-label="Ver carrito" target="_top" rel="noopener">
                 🛒{_badge}
               </a>
             </div>
@@ -1796,7 +1796,7 @@ with st.container(key="am_topbar_v2"):
 # ---------- Panel desplegable del menu (al lado izquierdo) ----------
 if st.session_state.get("menu_open", False):
     _items_html = "".join(
-        f'<a href="{_html_attr(app_url(cat=c))}" target="_blank" rel="noopener" '
+        f'<a href="{_html_attr(app_url(cat=c))}" target="_top" rel="noopener" '
         f'style="display:block;padding:12px 18px;border-bottom:1px solid rgba(255,255,255,.15);'
         f'font-family:Poppins,sans-serif;font-weight:600;font-size:14px;">'
         f'{c.capitalize()}</a>'
@@ -1840,7 +1840,7 @@ if categories:
         lc   = stl["label_color"]
         ls   = stl["label_size"]
         circles_html.append(
-            f'<a class="am-cat-circle" href="{_html_attr(app_url(cat=cat))}" target="_blank" rel="noopener" style="min-width:{max(sz+20,80)}px;">'
+            f'<a class="am-cat-circle" href="{_html_attr(app_url(cat=cat))}" target="_top" rel="noopener" style="min-width:{max(sz+20,80)}px;">'
 
             f'  <div class="bubble" style="width:{sz}px;height:{sz}px;'
             f'background: radial-gradient(circle at 30% 30%, color-mix(in srgb, {cc} 78%, white) 0%, {cc} 78%);'
@@ -1919,7 +1919,7 @@ def render_anuncios_banner():
     slides_html = []
     for i, s in enumerate(_slides):
         url = normalize_app_link(s["url"] or "#")
-        target_attr = 'target="_blank" rel="noopener"' if url != "#" else ""
+        target_attr = 'target="_top" rel="noopener"' if url != "#" else ""
         onclick_attr = ""
         anim = f"animation: amSlide{i} {total}s linear infinite;" if n > 1 else ""
         slides_html.append(
@@ -2007,7 +2007,7 @@ def render_anuncios_banner():
             b64   = (c.get("img_b64") or "").strip()
             img_html = (f'<img src="data:image/png;base64,{b64}"/>'
                         if b64 else '<div style="color:#aaa;font-size:12px;">Sin imagen</div>')
-            target_attr = 'target="_blank" rel="noopener"' if url != "#" else ""
+            target_attr = 'target="_top" rel="noopener"' if url != "#" else ""
             onclick_attr = ""
             html.append(
                 f'<a class="am-ads-card" href="{url}" {target_attr} {onclick_attr}>'
@@ -2306,7 +2306,7 @@ elif not current_cat:
                 f'    <span class="am-tile-count">· {total_cat} producto(s)</span>'
                 f'  </div>'
                 f'  {grid_html}'
-                f'  <a class="am-tile-more" href="{_html_attr(app_url(cat=cat))}" target="_blank" rel="noopener" '
+                f'  <a class="am-tile-more" href="{_html_attr(app_url(cat=cat))}" target="_top" rel="noopener" '
                 f'     style="background:{mbg};color:{mfg};">Ver más →</a>'
                 f'</div>'
             )
@@ -2439,7 +2439,7 @@ if _n_cart_float > 0 and view != "cart":
               }}
           }}
         </style>
-        <a class="am-pay-float" href="{_pay_href}" target="_self">
+        <a class="am-pay-float" href="{_pay_href}" target="_top">
           🛒 Pagar ahora <span class="am-pay-badge">{_n_cart_float}</span>
         </a>
         ''',
