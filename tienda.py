@@ -244,7 +244,39 @@ def get_cat_style(cat: str, styles: dict) -> dict:
         "title_size":   int(st_.get("title_size",   22)),
         "more_bg":      str(st_.get("more_bg",      "#2A2A9C")),
         "more_fg":      str(st_.get("more_fg",      "#FFFFFF")),
+        "use_image":    bool(st_.get("use_image",   False)),
+        "image_path":   str(st_.get("image_path",   "")),
     }
+
+
+@st.cache_data(show_spinner=False)
+def cat_circle_image_b64(rel_path: str) -> str:
+    """Devuelve la imagen del circulo del apartado como base64 (PNG)."""
+    if not rel_path:
+        return ""
+    p = IMG_DIR / rel_path
+    if not p.exists():
+        # Compatibilidad: por si guardaron ruta absoluta
+        p2 = Path(rel_path)
+        if p2.exists():
+            p = p2
+        else:
+            return ""
+    try:
+        img = Image.open(p).convert("RGBA")
+        # cuadrar
+        w, h = img.size
+        m = min(w, h)
+        left = (w - m) // 2
+        top  = (h - m) // 2
+        img = img.crop((left, top, left + m, top + m))
+        if m > 400:
+            img = img.resize((400, 400), Image.LANCZOS)
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        return base64.b64encode(buf.getvalue()).decode()
+    except Exception:
+        return ""
 
 
 # ----- Carritos persistentes, separados por visitante -----
@@ -1824,12 +1856,29 @@ if categories:
         cc   = stl["circle_color"]
         lc   = stl["label_color"]
         ls   = stl["label_size"]
+
+        # NUEVO: si el apartado tiene "usar imagen" activo y hay imagen,
+        # se muestra la imagen dentro del circulo en lugar del emoji.
+        img_b64 = cat_circle_image_b64(stl["image_path"]) if stl["use_image"] else ""
+        if img_b64:
+            bubble_inner = (
+                f'<img src="data:image/png;base64,{img_b64}" '
+                f'alt="{_html_attr(cat)}" '
+                f'style="width:100%;height:100%;object-fit:cover;'
+                f'border-radius:50%;display:block;" />'
+            )
+            bubble_bg = f'background:{cc};'
+        else:
+            bubble_inner = icon
+            bubble_bg = (
+                f'background: radial-gradient(circle at 30% 30%, '
+                f'color-mix(in srgb, {cc} 78%, white) 0%, {cc} 78%);'
+                f'font-size:{int(sz*0.46)}px;'
+            )
+
         circles_html.append(
             f'<a class="am-cat-circle" href="{_html_attr(app_url(cat=cat))}" target="_blank" rel="noopener" style="min-width:{max(sz+20,80)}px;">'
-
-            f'  <div class="bubble" style="width:{sz}px;height:{sz}px;'
-            f'background: radial-gradient(circle at 30% 30%, color-mix(in srgb, {cc} 78%, white) 0%, {cc} 78%);'
-            f'font-size:{int(sz*0.46)}px;">{icon}</div>'
+            f'  <div class="bubble" style="width:{sz}px;height:{sz}px;overflow:hidden;{bubble_bg}">{bubble_inner}</div>'
             f'  <div class="label" style="color:{lc};font-size:{ls}px;">{cat}</div>'
             f'</a>'
         )
