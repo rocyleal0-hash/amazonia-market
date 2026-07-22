@@ -1,28 +1,38 @@
-# Streamlit
-.streamlit/
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
 # Entornos virtuales
-venv/
+.env
+.venv
 env/
+venv/
 ENV/
-.venv/
 
-# IDEs
-.vscode/
-.idea/
-*.swp
-*.swo
+# Streamlit
+.streamlit/secrets.toml
 
-# Sistema operativo
-.DS_Store
-Thumbs.db
+# Archivos del cliente (se generan solos)
+cart.json
 
-# Archivos temporales de imágenes o uploads
-*.tmp
+# Cache
+bcv_cache.json.bak
 *.bak
-
-# Logs
-*.log
