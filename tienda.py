@@ -1667,23 +1667,10 @@ def render_anuncios_banner():
     slides_html = []
     for i, s in enumerate(_slides):
         url = s["url"] or "#"
-        _u_esc = url.replace("'", "\\'")
-        is_internal = url.startswith("?") or url.startswith("/") or url.startswith("#")
-        if s["url"] and not is_internal:
-            target_attr = 'target="_blank" rel="noopener"'
-            onclick_attr = ""
-        elif s["url"]:
-            target_attr = 'target="_top"'
-            onclick_attr = (
-                f"onclick=\"try{{window.top.location.href='{_u_esc}';}}"
-                f"catch(e){{window.location.href='{_u_esc}';}}return false;\""
-            )
-        else:
-            target_attr = ""
-            onclick_attr = ""
+        target_attr = 'target="_blank" rel="noopener"' if s["url"] else ""
         anim = f"animation: amSlide{i} {total}s linear infinite;" if n > 1 else ""
         slides_html.append(
-            f'<a class="am-slide" href="{url}" {target_attr} {onclick_attr} '
+            f'<a class="am-slide" href="{url}" {target_attr} '
             f'style="{anim}">'
             f'<img src="data:image/png;base64,{s["b64"]}"/>'
             f'</a>'
@@ -1767,22 +1754,8 @@ def render_anuncios_banner():
             b64   = (c.get("img_b64") or "").strip()
             img_html = (f'<img src="data:image/png;base64,{b64}"/>'
                         if b64 else '<div style="color:#aaa;font-size:12px;">Sin imagen</div>')
-            _u_esc = url.replace("'", "\\'")
-            is_internal = url.startswith("?") or url.startswith("/") or url.startswith("#")
-            if url != "#" and not is_internal:
-                target_attr = 'target="_blank" rel="noopener"'
-                onclick_attr = ""
-            elif url != "#":
-                target_attr = 'target="_top"'
-                onclick_attr = (
-                    f"onclick=\"try{{window.top.location.href='{_u_esc}';}}"
-                    f"catch(e){{window.location.href='{_u_esc}';}}return false;\""
-                )
-            else:
-                target_attr = ""
-                onclick_attr = ""
             html.append(
-                f'<a class="am-ads-card" href="{url}" {target_attr} {onclick_attr}>'
+                f'<a class="am-ads-card" href="{url}" target="_top">'
                 f'<div class="t">{title or "&nbsp;"}</div>'
                 f'<div class="imgbox">{img_html}</div>'
                 f'<div class="lnk">Ver más &rsaquo;</div>'
